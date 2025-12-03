@@ -8,22 +8,28 @@ $ScriptRoot = if ( $PSScriptRoot ) { $PSScriptRoot } else { ($(try { $script:psE
 
 $ProductName = 'Code Modern Explorer Menu'
 $ProductPath = "$Env:LOCALAPPDATA\Programs\$ProductName"
-$MenuName = "Open With VSCode"
+$MenuName = "使用 VSCode 打开"
 
 if ($ScriptRoot -match 'Insiders') {
     $ProductName = 'Code Insiders Modern Explorer Menu'
     $ProductPath = "$Env:LOCALAPPDATA\Programs\$ProductName"
-    $MenuName = "Open With VSCode"
+    $MenuName = "使用 VSCode 打开"
 }
 
 if (-not (Test-Path $ProductPath)) {
     New-Item -Path $ProductPath -Force
 }
 
-# Process both cases at once
-$RegKeyPath = 'HKCU\SOFTWARE\Classes\' + $ProductName -replace '\s+'
-REG ADD "$RegKeyPath" /v "Title" /t REG_SZ /d "$MenuName" /reg:64 /f
-REG ADD "$RegKeyPath" /v "Title" /t REG_SZ /d "$MenuName" /reg:32 /f
+# Process both cases at once - use PowerShell to handle Unicode correctly
+$RegKeyPath = 'HKCU:\SOFTWARE\Classes\' + ($ProductName -replace '\s+')
+
+# Ensure registry key exists
+if (-not (Test-Path $RegKeyPath)) {
+    New-Item -Path $RegKeyPath -Force | Out-Null
+}
+
+# Set Title with UTF-16LE encoding for proper Chinese character display in Win11
+Set-ItemProperty -Path $RegKeyPath -Name "Title" -Value $MenuName -Force
 
 # Temporary enable Developer Mode if initially disabled
 $RegPath = "SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"

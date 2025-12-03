@@ -8,17 +8,18 @@ $ScriptRoot = if ( $PSScriptRoot ) { $PSScriptRoot } else { ($(try { $script:psE
 
 $ProductName = 'Code Modern Explorer Menu'
 $PackageName = $ProductName -replace '\s+', '.'
-$RegKeyPath = 'HKCU\SOFTWARE\Classes\' + $ProductName -replace '\s+'
+$RegKeyPath = 'HKCU:\SOFTWARE\Classes\' + ($ProductName -replace '\s+')
 
 if ($ScriptRoot -match 'Insiders') {
     $ProductName = 'Code Insiders Modern Explorer Menu'
     $PackageName = $ProductName -replace '\s+', '.'
-    $RegKeyPath = 'HKCU\SOFTWARE\Classes\' + $ProductName -replace '\s+'
+    $RegKeyPath = 'HKCU:\SOFTWARE\Classes\' + ($ProductName -replace '\s+')
 }
 
-# Process both cases at once
-REG DELETE "$RegKeyPath" /reg:64 /f
-REG DELETE "$RegKeyPath" /reg:32 /f
+# Process both cases at once - use PowerShell for proper handling
+if (Test-Path $RegKeyPath) {
+    Remove-Item -Path $RegKeyPath -Force
+}
 
 Get-AppxPackage -Name $PackageName | Remove-AppxPackage 
 
