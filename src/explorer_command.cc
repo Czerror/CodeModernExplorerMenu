@@ -183,7 +183,7 @@ class __declspec(uuid(DLL_UUID)) ExplorerCommandHandler final : public RuntimeCl
           module_path = module_path / DIR_NAME / EXE_NAME;
 
           if (!std::filesystem::exists(module_path)) {
-            std::filesystem::path fallback_path = std::filesystem::path("C:\\Program Files") / DIR_NAME / EXE_NAME;
+            std::filesystem::path fallback_path = std::filesystem::path("D:\\App") / DIR_NAME / EXE_NAME;
             if (std::filesystem::exists(fallback_path)) {
                 module_path = fallback_path;
             } else {
@@ -243,4 +243,5 @@ STDAPI DllGetActivationFactory(HSTRING activatableClassId,
                                IActivationFactory** factory) {
   return Module<ModuleType::InProc>::GetModule().GetActivationFactory(activatableClassId, factory);
 }
+
 
