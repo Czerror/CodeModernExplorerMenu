@@ -6,30 +6,15 @@ if (-not ([Security.Principal.WindowsPrincipal]::new([Security.Principal.Windows
 
 $ScriptRoot = if ( $PSScriptRoot ) { $PSScriptRoot } else { ($(try { $script:psEditor.GetEditorContext().CurrentFile.Path } catch {}), $script:MyInvocation.MyCommand.Path, $script:PSCommandPath, $(try { $script:psISE.CurrentFile.Fullpath.ToString() } catch {}) | % { if ($_ ) { $_.ToLower() } } | Split-Path -EA 0 | Get-Unique ) | Get-Unique }
 
-$ProductName = 'Code Modern Explorer Menu'
-$ProductPath = "$Env:LOCALAPPDATA\Programs\$ProductName"
-$MenuName = "使用 VSCode 打开"
-
-if ($ScriptRoot -match 'Insiders') {
-    $ProductName = 'Code Insiders Modern Explorer Menu'
-    $ProductPath = "$Env:LOCALAPPDATA\Programs\$ProductName"
-    $MenuName = "使用 VSCode 打开"
-}
+$ProductPath = "$Env:LOCALAPPDATA\Programs\Code Modern Explorer Menu"
 
 if (-not (Test-Path $ProductPath)) {
-    New-Item -Path $ProductPath -Force
+    New-Item -Path $ProductPath -Force | Out-Null
 }
 
-# Process both cases at once - use PowerShell to handle Unicode correctly
-$RegKeyPath = 'HKCU:\SOFTWARE\Classes\' + ($ProductName -replace '\s+')
-
-# Ensure registry key exists
-if (-not (Test-Path $RegKeyPath)) {
-    New-Item -Path $RegKeyPath -Force | Out-Null
-}
-
-# Set Title with UTF-16LE encoding for proper Chinese character display in Win11
-Set-ItemProperty -Path $RegKeyPath -Name "Title" -Value $MenuName -Force
+# 直接硬编码注册表操作，用于 Win11 右键菜单
+cmd /c "REG ADD `"HKEY_CURRENT_USER\Software\Classes\CodeModernExplorerMenu`" /VE /D `"使用 VSCode 编辑`" /F >NUL 2>&1"
+cmd /c "REG ADD `"HKEY_CURRENT_USER\Software\Classes\CodeModernExplorerMenu`" /V `"Title`" /D `"使用 VSCode 编辑`" /F >NUL 2>&1"
 
 # Temporary enable Developer Mode if initially disabled
 $RegPath = "SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"

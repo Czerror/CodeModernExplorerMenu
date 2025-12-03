@@ -7,22 +7,25 @@ if (-not ([Security.Principal.WindowsPrincipal]::new([Security.Principal.Windows
 $ScriptRoot = if ( $PSScriptRoot ) { $PSScriptRoot } else { ($(try { $script:psEditor.GetEditorContext().CurrentFile.Path } catch {}), $script:MyInvocation.MyCommand.Path, $script:PSCommandPath, $(try { $script:psISE.CurrentFile.Fullpath.ToString() } catch {}) | % { if ($_ ) { $_.ToLower() } } | Split-Path -EA 0 | Get-Unique ) | Get-Unique }
 
 $ProductName = 'Code Modern Explorer Menu'
+$ProductPath = "$Env:LOCALAPPDATA\Programs\$ProductName"
 $PackageName = $ProductName -replace '\s+', '.'
-$RegKeyPath = 'HKCU:\SOFTWARE\Classes\' + ($ProductName -replace '\s+')
 
 if ($ScriptRoot -match 'Insiders') {
     $ProductName = 'Code Insiders Modern Explorer Menu'
+    $ProductPath = "$Env:LOCALAPPDATA\Programs\$ProductName"
     $PackageName = $ProductName -replace '\s+', '.'
-    $RegKeyPath = 'HKCU:\SOFTWARE\Classes\' + ($ProductName -replace '\s+')
 }
 
-# Process both cases at once - use PowerShell for proper handling
-if (Test-Path $RegKeyPath) {
-    Remove-Item -Path $RegKeyPath -Force
+# 删除注册表键 - 使用 cmd 确保中文字符正确处理
+cmd /c "REG DELETE `"HKEY_CURRENT_USER\Software\Classes\CodeModernExplorerMenu`" /F >NUL 2>&1"
+
+# 卸载 AppX 包
+$appxPackage = Get-AppxPackage -Name $PackageName -ErrorAction SilentlyContinue
+if ($appxPackage) {
+    Remove-AppxPackage -Package $appxPackage.PackageFullName -ErrorAction SilentlyContinue
 }
 
-Get-AppxPackage -Name $PackageName | Remove-AppxPackage 
-
-if ($ScriptRoot -eq "$Env:LOCALAPPDATA\Programs\$ProductName") {
-    Remove-Item -Path "$Env:LOCALAPPDATA\Programs\$ProductName" -Recurse -Force
+# 删除程序目录
+if (Test-Path $ProductPath) {
+    Remove-Item -Path $ProductPath -Recurse -Force -ErrorAction SilentlyContinue
 }
