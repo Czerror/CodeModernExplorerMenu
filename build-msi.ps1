@@ -1,8 +1,13 @@
 param($ProductName = 'Code Modern Explorer Menu', $Variant = 'stable', $Platform = 'x64', $Version = '1.0.0')
 
+# -*- coding: utf-8 -*-
+# 设置 UTF-8 编码以正确处理中文字符
+[System.Text.Encoding]::UTF8 | Out-Null
+$PSDefaultParameterValues['*:Encoding'] = 'utf8'
+
 Import-Module PSMSI
 
-$ScriptRoot = if ( $PSScriptRoot ) { $PSScriptRoot} else { ($(try { $script:psEditor.GetEditorContext().CurrentFile.Path } catch {}), $script:MyInvocation.MyCommand.Path, $script:PSCommandPath, $(try { $script:psISE.CurrentFile.Fullpath.ToString() } catch {}) | % { if ($_ ) { $_.ToLower() } } | Split-Path -EA 0 | Get-Unique ) | Get-Unique }
+$ScriptRoot = if ( $PSScriptRoot ) { $PSScriptRoot} else { ($(try { $script:psEditor.GetEditorContext().CurrentFile.Path } catch {}), $script:MyInvocation.MyCommand.Path, $script:PSCommandPath, $(try { $script:psISE.CurrentFile.Fullpath.ToString() } catch {}) | ForEach-Object { if ($_ ) { $_.ToLower() } } | Split-Path -EA 0 | Get-Unique ) | Get-Unique }
 
 $OutputDirectory = "$ScriptRoot\output"
 
@@ -30,6 +35,7 @@ $InstallerFile = {
     New-InstallerFile -Source "$ScriptRoot\out\$($Variant)_explorer_pkg_$($Platform)\AppxManifest.xml"
     New-InstallerFile -Source "$ScriptRoot\out\$ProductName $Platform.appx"
     New-InstallerFile -Source "$ScriptRoot\out\$ProductName.dll"
+    # 以 UTF-8 编码读取包含中文注释的 PowerShell 脚本
     New-InstallerFile -Source "$ScriptRoot\msi\RunOnInstall.ps1" -Id 'RunOnInstall'
     New-InstallerFile -Source "$ScriptRoot\msi\RunOnUninstall.ps1" -Id 'RunOnUninstall'
 }
