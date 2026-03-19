@@ -96,29 +96,48 @@ class __declspec(uuid(DLL_UUID)) ExplorerCommandHandler final : public RuntimeCl
  public:
   // IExplorerCommand implementation:
   IFACEMETHODIMP GetTitle(IShellItemArray* items, PWSTR* name) {
-    const size_t kMaxStringLength = 1024;
-    wchar_t value_w[kMaxStringLength];
-    wchar_t expanded_value_w[kMaxStringLength];
-    DWORD value_size_w = sizeof(value_w);
-    #if defined(INSIDER)
-        const wchar_t kTitleRegkey[] = L"Software\\Classes\\CodeInsidersModernExplorerMenu";
-    #else
-        const wchar_t kTitleRegkey[] = L"Software\\Classes\\CodeModernExplorerMenu";
-    #endif
-    HKEY subhkey = nullptr;
-    LONG result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, kTitleRegkey, 0, KEY_READ, &subhkey);
-    if (result != ERROR_SUCCESS) {
-      result = RegOpenKeyEx(HKEY_CURRENT_USER, kTitleRegkey, 0, KEY_READ, &subhkey);
+    static std::wstring cached_title;
+    static bool title_cached = false;
+
+    if (!title_cached) {
+      const size_t kMaxStringLength = 1024;
+      wchar_t value_w[kMaxStringLength] = {0};
+      wchar_t expanded_value_w[kMaxStringLength] = {0};
+      DWORD value_size_w = sizeof(value_w);
+#if defined(INSIDER)
+      const wchar_t kTitleRegkey[] = L"Software\\Classes\\CodeInsidersModernExplorerMenu";
+#else
+      const wchar_t kTitleRegkey[] = L"Software\\Classes\\CodeModernExplorerMenu";
+#endif
+      HKEY subhkey = nullptr;
+      LONG result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, kTitleRegkey, 0,
+                                  KEY_QUERY_VALUE | KEY_WOW64_64KEY, &subhkey);
+      if (result != ERROR_SUCCESS) {
+        result = RegOpenKeyExW(HKEY_CURRENT_USER, kTitleRegkey, 0,
+                               KEY_QUERY_VALUE | KEY_WOW64_64KEY, &subhkey);
+      }
+
+      if (result == ERROR_SUCCESS && subhkey != nullptr) {
+        DWORD type = 0;
+        result = RegQueryValueExW(subhkey, L"Title", nullptr, &type,
+                                  reinterpret_cast<LPBYTE>(value_w), &value_size_w);
+        RegCloseKey(subhkey);
+
+        if (result == ERROR_SUCCESS && value_size_w > 0) {
+          DWORD expanded_size = ExpandEnvironmentStringsW(value_w, expanded_value_w, kMaxStringLength);
+          if (expanded_size && expanded_size < kMaxStringLength) {
+            cached_title = expanded_value_w;
+          }
+        }
+      }
+
+      if (cached_title.empty()) {
+        cached_title = L"Open with Code";
+      }
+      title_cached = true;
     }
 
-    DWORD type = REG_EXPAND_SZ;
-    RegQueryValueEx(subhkey, L"Title", nullptr, &type,
-                    reinterpret_cast<LPBYTE>(&value_w), &value_size_w);
-    RegCloseKey(subhkey);
-    value_size_w = ExpandEnvironmentStrings(value_w, expanded_value_w, kMaxStringLength);
-    return (value_size_w && value_size_w < kMaxStringLength)
-        ? SHStrDup(expanded_value_w, name)
-        : SHStrDup(L"UnExpected Title", name);
+    return SHStrDupW(cached_title.c_str(), name);
   }
 
   IFACEMETHODIMP GetIcon(IShellItemArray* items, PWSTR* icon) {

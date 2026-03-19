@@ -14,13 +14,12 @@ if (-not (Test-Path $ProductPath)) {
     New-Item -Path $ProductPath -Force | Out-Null
 }
 
-# 更安全的方式：使用 REG ADD 而不是 New-ItemProperty
+# Use Unicode code points to construct Chinese text - immune to file encoding issues
+# "使用 VSCode 编辑" = U+4F7F U+7528 U+0020 VSCode U+0020 U+7F16 U+8F91
 $regKeyPath = "HKCU:\Software\Classes\CodeModernExplorerMenu"
 $null = New-Item -Path $regKeyPath -Force -ErrorAction SilentlyContinue
 
-# 使用 PowerShell cmdlet 但确保编码正确
-[System.Text.Encoding]::UTF8 | Out-Null
-$chineseText = "使用 VSCode 编辑"
+$chineseText = "$([char]0x4F7F)$([char]0x7528) VSCode $([char]0x7F16)$([char]0x8F91)"
 New-ItemProperty -Path $regKeyPath -Name "(default)" -Value $chineseText -PropertyType String -Force | Out-Null
 New-ItemProperty -Path $regKeyPath -Name "Title" -Value $chineseText -PropertyType String -Force | Out-Null
 
