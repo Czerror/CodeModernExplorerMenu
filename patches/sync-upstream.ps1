@@ -31,6 +31,7 @@ git checkout main -- patches
 & (Join-Path $repoRoot 'patches\apply-patches.ps1')
 
 git add -A
+git add --renormalize .
 $upstreamSha = git rev-parse --short upstream/main
 git commit -m "sync: rebase fork patches on upstream/main ($upstreamSha)"
 

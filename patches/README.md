@@ -31,7 +31,8 @@ powershell -ExecutionPolicy Bypass -File patches\sync-upstream.ps1
 
 The sync script: fetches upstream, resets `dev` to `upstream/main`, restores
 `patches/` from `main`, applies everything, and commits. Add `-Push` to force-push
-`origin/dev`.
+`origin/dev`. The scripts run `git add --renormalize .` before committing so the
+resulting tree uses canonical LF line endings regardless of local `core.autocrlf`.
 
 ## Apply manually
 
