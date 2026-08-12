@@ -42,10 +42,10 @@ index 00afb3f..d7948d6 100644
  
  Open Source License/Copyright Notice.
 diff --git a/README.md b/README.md
-index a76d561..e7f3101 100644
+index a76d561..d0defaa 100644
 --- a/README.md
 +++ b/README.md
-@@ -1,30 +1,68 @@
+@@ -1,30 +1,66 @@
 -# vscode-explorer-command
 +# Code Modern Explorer Menu
 +An MSI package that adds the Windows 11 Modern Explorer menu for Microsoft Visual Studio Code.
@@ -121,14 +121,12 @@ index a76d561..e7f3101 100644
 +from the official files already inside the portable package (`appx\code_x64.appx`
 +and `appx\code_explorer_command_x64.dll`):
 +
-+```powershell
-+pwsh -ExecutionPolicy Bypass -File scripts\register-menu.ps1
-+pwsh -ExecutionPolicy Bypass -File scripts\register-menu.ps1 -Uninstall
-+```
-+
-+The script is fully portable: place it inside the portable VSCode folder (next to
-+`Code.exe` or in any subfolder) and it auto-detects the root by walking up until it
-+finds `Code.exe`. Use `-VSCodePath` to override.
++Copy `scripts\register-menu.ps1` and `scripts\register-menu.cmd` into the portable
++VSCode root (the folder that contains `Code.exe`), then double-click
++`register-menu.cmd`. A small GUI opens with two buttons: **Register menu** and
++**Delete menu**. Only the script's own directory is searched for `Code.exe`; if it
++is missing, the GUI asks you to place the script in the VSCode portable root.
++Use `-VSCodePath` to override the root.
 +
 +It copies the official appx files into `<root>\<versioned-folder>\appx`
 +(the layout the official shell extension expects), registers the Microsoft-signed
