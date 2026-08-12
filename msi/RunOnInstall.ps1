@@ -8,7 +8,13 @@ if (-not ([Security.Principal.WindowsPrincipal]::new([Security.Principal.Windows
 }
 
 $ScriptRoot = if ( $PSScriptRoot ) { $PSScriptRoot } else { ($(try { $script:psEditor.GetEditorContext().CurrentFile.Path } catch {}), $script:MyInvocation.MyCommand.Path, $script:PSCommandPath, $(try { $script:psISE.CurrentFile.Fullpath.ToString() } catch {}) | ForEach-Object { if ($_ ) { $_.ToLower() } } | Split-Path -EA 0 | Get-Unique ) | Get-Unique }
-$ProductPath = "$Env:LOCALAPPDATA\Programs\Code Modern Explorer Menu"
+
+$IsInsiders = $ScriptRoot -match 'Insiders'
+if ($IsInsiders) {
+    $ProductPath = "$Env:LOCALAPPDATA\Programs\Code Insiders Modern Explorer Menu"
+} else {
+    $ProductPath = "$Env:LOCALAPPDATA\Programs\Code Modern Explorer Menu"
+}
 
 if (-not (Test-Path $ProductPath)) {
     New-Item -Path $ProductPath -Force | Out-Null
@@ -16,12 +22,20 @@ if (-not (Test-Path $ProductPath)) {
 
 # Use Unicode code points to construct Chinese text - immune to file encoding issues
 # "使用 VSCode 编辑" = U+4F7F U+7528 U+0020 VSCode U+0020 U+7F16 U+8F91
-$regKeyPath = "HKCU:\Software\Classes\CodeModernExplorerMenu"
-$null = New-Item -Path $regKeyPath -Force -ErrorAction SilentlyContinue
-
 $chineseText = "$([char]0x4F7F)$([char]0x7528) VSCode $([char]0x7F16)$([char]0x8F91)"
-New-ItemProperty -Path $regKeyPath -Name "(default)" -Value $chineseText -PropertyType String -Force | Out-Null
-New-ItemProperty -Path $regKeyPath -Name "Title" -Value $chineseText -PropertyType String -Force | Out-Null
+
+# 同时写入 HKCU 和 HKLM，DLL 任一 hive 读到即可；Insiders 使用独立键名
+$regKeySuffix = if ($IsInsiders) { 'CodeInsidersModernExplorerMenu' } else { 'CodeModernExplorerMenu' }
+foreach ($root in @('HKCU:', 'HKLM:')) {
+    $regKeyPath = "$root\Software\Classes\$regKeySuffix"
+    $null = New-Item -Path $regKeyPath -Force -ErrorAction SilentlyContinue
+    New-ItemProperty -Path $regKeyPath -Name "(default)" -Value $chineseText -PropertyType String -Force -ErrorAction SilentlyContinue | Out-Null
+    New-ItemProperty -Path $regKeyPath -Name "Title" -Value $chineseText -PropertyType String -Force -ErrorAction SilentlyContinue | Out-Null
+}
+
+# 重新注册前先移除同名旧包，避免重复注册报错
+$PackageName = if ($IsInsiders) { 'Code.Insiders.Modern.Explorer.Menu' } else { 'Code.Modern.Explorer.Menu' }
+Get-AppxPackage -Name $PackageName -ErrorAction SilentlyContinue | Remove-AppxPackage -ErrorAction SilentlyContinue
 
 # Temporary enable Developer Mode if initially disabled
 $RegPath = "SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"

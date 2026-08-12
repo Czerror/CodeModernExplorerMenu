@@ -27,3 +27,20 @@ An MSI package that adds the Windows 11 Modern Explorer menu for Microsoft Visua
 - replace Azure DevOps with GitHub Actions
 - removed C++ dependencies from the repository
 - added vcpkg package manager
+
+## Development (patch system)
+
+This fork is maintained as a patch system on top of
+[microsoft/vscode-explorer-command](https://github.com/microsoft/vscode-explorer-command):
+
+- `dev` branch = upstream `main` + `patches/` (reapplied by `patches/apply-patches.ps1`)
+- `main` branch = the applied release state (also contains `patches/` for reproducibility)
+- To sync upstream changes: run `patches/sync-upstream.ps1`
+
+Notes:
+- The menu title is read from `Software\Classes\CodeModernExplorerMenu` (stable) /
+  `CodeInsidersModernExplorerMenu` (insiders) in both `HKCU` and `HKLM`; if missing,
+  the DLL falls back to `使用 VSCode 编辑` instead of English.
+- The custom menu uses its own verb ids (`OpenWithCodeModernExplorerMenu` /
+  `OpenWithCodeInsidersModernExplorerMenu`) so VSCode's official `OpenWithCode` menu
+  does not override it after VSCode updates.

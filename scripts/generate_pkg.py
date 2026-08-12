@@ -38,7 +38,7 @@ with open(manifest, 'r') as f:
     content = content.replace('@@PackageDisplayName@@', 'Code Modern Explorer Menu')
     content = content.replace('@@Application@@', 'Code.exe')
     content = content.replace('@@ApplicationIdShort@@', 'Code')
-    content = content.replace('@@MenuID@@', 'OpenWithCode')
+    content = content.replace('@@MenuID@@', 'OpenWithCodeModernExplorerMenu')
     content = content.replace('@@CLSID@@', code_clsid_map[arch])
     content = content.replace('@@PackageDLL@@', 'Code Modern Explorer Menu.dll')
   if pkg_type == 'insiders':
@@ -48,7 +48,7 @@ with open(manifest, 'r') as f:
     content = content.replace('@@PackageDisplayName@@', 'Code Insiders Modern Explorer Menu')
     content = content.replace('@@Application@@', 'Code - Insiders.exe')
     content = content.replace('@@ApplicationIdShort@@', 'CodeInsiders')
-    content = content.replace('@@MenuID@@', 'OpenWithCodeInsiders')
+    content = content.replace('@@MenuID@@', 'OpenWithCodeInsidersModernExplorerMenu')
     content = content.replace('@@CLSID@@', code_insiders_clsid_map[arch])
     content = content.replace('@@PackageDLL@@', 'Code Insiders Modern Explorer Menu.dll')
 

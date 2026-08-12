@@ -103,36 +103,45 @@ class __declspec(uuid(DLL_UUID)) ExplorerCommandHandler final : public RuntimeCl
       const size_t kMaxStringLength = 1024;
       wchar_t value_w[kMaxStringLength] = {0};
       wchar_t expanded_value_w[kMaxStringLength] = {0};
-      DWORD value_size_w = sizeof(value_w);
 #if defined(INSIDER)
       const wchar_t kTitleRegkey[] = L"Software\\Classes\\CodeInsidersModernExplorerMenu";
 #else
       const wchar_t kTitleRegkey[] = L"Software\\Classes\\CodeModernExplorerMenu";
 #endif
-      HKEY subhkey = nullptr;
-      LONG result = RegOpenKeyExW(HKEY_LOCAL_MACHINE, kTitleRegkey, 0,
-                                  KEY_QUERY_VALUE | KEY_WOW64_64KEY, &subhkey);
-      if (result != ERROR_SUCCESS) {
-        result = RegOpenKeyExW(HKEY_CURRENT_USER, kTitleRegkey, 0,
-                               KEY_QUERY_VALUE | KEY_WOW64_64KEY, &subhkey);
-      }
 
-      if (result == ERROR_SUCCESS && subhkey != nullptr) {
+      // 依次尝试 HKCU -> HKLM，每个键先读 "Title"，再读默认值。
+      const HKEY roots[] = {HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
+      for (HKEY root : roots) {
+        DWORD value_size_w = sizeof(value_w);
+        HKEY subhkey = nullptr;
+        LONG result = RegOpenKeyExW(root, kTitleRegkey, 0,
+                                    KEY_QUERY_VALUE | KEY_WOW64_64KEY, &subhkey);
+        if (result != ERROR_SUCCESS || subhkey == nullptr) {
+          continue;
+        }
+
         DWORD type = 0;
         result = RegQueryValueExW(subhkey, L"Title", nullptr, &type,
                                   reinterpret_cast<LPBYTE>(value_w), &value_size_w);
+        if (result != ERROR_SUCCESS || value_size_w == 0 || value_w[0] == L'\0') {
+          value_size_w = sizeof(value_w);
+          result = RegQueryValueExW(subhkey, nullptr, nullptr, &type,
+                                    reinterpret_cast<LPBYTE>(value_w), &value_size_w);
+        }
         RegCloseKey(subhkey);
 
-        if (result == ERROR_SUCCESS && value_size_w > 0) {
+        if (result == ERROR_SUCCESS && value_size_w > 0 && value_w[0] != L'\0') {
           DWORD expanded_size = ExpandEnvironmentStringsW(value_w, expanded_value_w, kMaxStringLength);
           if (expanded_size && expanded_size < kMaxStringLength) {
             cached_title = expanded_value_w;
+            break;
           }
         }
       }
 
+      // 注册表标题缺失时回退到中文，避免 VSCode 更新后显示英文 "Open with Code"。
       if (cached_title.empty()) {
-        cached_title = L"Open with Code";
+        cached_title = L"\u4F7F\u7528 VSCode \u7F16\u8F91";  // "使用 VSCode 编辑"
       }
       title_cached = true;
     }

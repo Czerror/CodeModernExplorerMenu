@@ -16,8 +16,11 @@ if ($ScriptRoot -match 'Insiders') {
     $PackageName = $ProductName -replace '\s+', '.'
 }
 
-# 删除注册表键 - 使用 cmd 确保中文字符正确处理
-cmd /c "REG DELETE `"HKEY_CURRENT_USER\Software\Classes\CodeModernExplorerMenu`" /F >NUL 2>&1"
+# 删除注册表键 - 使用 cmd 确保中文字符正确处理；清理两个 hive 下的 stable/insiders 键
+foreach ($key in @('CodeModernExplorerMenu', 'CodeInsidersModernExplorerMenu')) {
+    cmd /c "REG DELETE `"HKEY_CURRENT_USER\Software\Classes\$key`" /F >NUL 2>&1"
+    cmd /c "REG DELETE `"HKEY_LOCAL_MACHINE\Software\Classes\$key`" /F >NUL 2>&1"
+}
 
 # 卸载 AppX 包
 $appxPackage = Get-AppxPackage -Name $PackageName -ErrorAction SilentlyContinue
