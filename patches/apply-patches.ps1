@@ -30,6 +30,7 @@ $features = @(
   'msi/RunOnInstall.ps1',
   'msi/RunOnUninstall.ps1',
   'scripts/generate_pkg.py',
+  'scripts/register-menu.cmd',
   'scripts/register-menu.ps1',
   'scripts/check-title.ps1',
   'template/AppxManifest.xml',
