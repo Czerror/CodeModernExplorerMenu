@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
-
+#include <fmt/core.h>
+#include <iostream>
+#include <fstream>
 #include <windows.h>
 #include <shellapi.h>
-
+#include <shlobj.h>
 #include <filesystem>
 #include <string>
 #include <utility>
-
 #include <shlwapi.h>
 #include <shobjidl_core.h>
 #include <userenv.h>
@@ -17,6 +18,9 @@
 #include "wil/stl.h"
 #include "wil/filesystem.h"
 #include "wil/win32_helpers.h"
+#include <wil/cppwinrt.h>
+#include <wil/resource.h>
+#include <wil/com.h>
 
 using Microsoft::WRL::ClassicCom;
 using Microsoft::WRL::ComPtr;
@@ -41,9 +45,10 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE instance,
 }
 
 namespace {
-// Extracted from
-// https://source.chromium.org/chromium/chromium/src/+/main:base/command_line.cc;l=109-159
-std::wstring QuoteForCommandLineArg(const std::wstring& arg) {
+  // Extracted from
+  // https://source.chromium.org/chromium/chromium/src/+/main:base/command_line.cc;l=109-159
+
+  std::wstring QuoteForCommandLineArg(const std::wstring& arg) {
   // We follow the quoting rules of CommandLineToArgvW.
   // http://msdn.microsoft.com/en-us/library/17w5ykft.aspx
   std::wstring quotable_chars(L" \\\"");
@@ -85,43 +90,6 @@ std::wstring QuoteForCommandLineArg(const std::wstring& arg) {
   return out;
 }
 
-static int IsContextMenuEnabled() {
-  static int enabled = -1;
-  HKEY subhkey;
-  int err;
-#if defined(INSIDER)
-    const wchar_t kTitleRegkey[] = L"Software\\Classes\\VSCodeInsidersContextMenu";
-#else
-    const wchar_t kTitleRegkey[] = L"Software\\Classes\\VSCodeContextMenu";
-#endif
-
-  if (enabled != -1)
-    return enabled;
-
-  // Check if the context menu is enabled in the registry.
-  err = RegOpenKeyExW(HKEY_LOCAL_MACHINE,
-                      kTitleRegkey,
-                      0,
-                      KEY_QUERY_VALUE | KEY_WOW64_64KEY,
-                      &subhkey);
-  if (err != ERROR_SUCCESS) {
-    err = RegOpenKeyExW(HKEY_CURRENT_USER,
-                        kTitleRegkey,
-                        0,
-                        KEY_QUERY_VALUE | KEY_WOW64_64KEY,
-                        &subhkey);
-  }
-
-  if (err != ERROR_SUCCESS) {
-    enabled = 0;
-  } else {
-    enabled = 1;
-    RegCloseKey(subhkey);
-  }
-
-  return enabled;
-}
-
 }
 
 class __declspec(uuid(DLL_UUID)) ExplorerCommandHandler final : public RuntimeClass<RuntimeClassFlags<ClassicCom | InhibitRoOriginateError>, IExplorerCommand> {
@@ -130,44 +98,77 @@ class __declspec(uuid(DLL_UUID)) ExplorerCommandHandler final : public RuntimeCl
   IFACEMETHODIMP GetTitle(IShellItemArray* items, PWSTR* name) {
     static std::wstring cached_title;
     static bool title_cached = false;
-    
+
     if (!title_cached) {
       const size_t kMaxStringLength = 1024;
-      wchar_t value_w[kMaxStringLength];
-      wchar_t expanded_value_w[kMaxStringLength];
-      DWORD value_size_w = sizeof(value_w);
+      wchar_t value_w[kMaxStringLength] = {0};
+      wchar_t expanded_value_w[kMaxStringLength] = {0};
 #if defined(INSIDER)
-      const wchar_t kTitleRegkey[] = L"Software\\Classes\\VSCodeInsidersContextMenu";
+      const wchar_t kTitleRegkey[] = L"Software\\Classes\\CodeInsidersModernExplorerMenu";
 #else
-      const wchar_t kTitleRegkey[] = L"Software\\Classes\\VSCodeContextMenu";
+      const wchar_t kTitleRegkey[] = L"Software\\Classes\\CodeModernExplorerMenu";
 #endif
-      HKEY subhkey = nullptr;
-      LONG result = RegOpenKeyEx(HKEY_LOCAL_MACHINE, kTitleRegkey, 0, KEY_READ, &subhkey);
-      if (result != ERROR_SUCCESS) {
-        result = RegOpenKeyEx(HKEY_CURRENT_USER, kTitleRegkey, 0, KEY_READ, &subhkey);
+
+      // 依次尝试 HKCU -> HKLM，每个键先读 "Title"，再读默认值。
+      const HKEY roots[] = {HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
+      for (HKEY root : roots) {
+        DWORD value_size_w = sizeof(value_w);
+        HKEY subhkey = nullptr;
+        LONG result = RegOpenKeyExW(root, kTitleRegkey, 0,
+                                    KEY_QUERY_VALUE | KEY_WOW64_64KEY, &subhkey);
+        if (result != ERROR_SUCCESS || subhkey == nullptr) {
+          continue;
+        }
+
+        DWORD type = 0;
+        result = RegQueryValueExW(subhkey, L"Title", nullptr, &type,
+                                  reinterpret_cast<LPBYTE>(value_w), &value_size_w);
+        if (result != ERROR_SUCCESS || value_size_w == 0 || value_w[0] == L'\0') {
+          value_size_w = sizeof(value_w);
+          result = RegQueryValueExW(subhkey, nullptr, nullptr, &type,
+                                    reinterpret_cast<LPBYTE>(value_w), &value_size_w);
+        }
+        RegCloseKey(subhkey);
+
+        if (result == ERROR_SUCCESS && value_size_w > 0 && value_w[0] != L'\0') {
+          DWORD expanded_size = ExpandEnvironmentStringsW(value_w, expanded_value_w, kMaxStringLength);
+          if (expanded_size && expanded_size < kMaxStringLength) {
+            cached_title = expanded_value_w;
+            break;
+          }
+        }
       }
 
-      DWORD type = REG_EXPAND_SZ;
-      RegQueryValueEx(subhkey, L"Title", nullptr, &type,
-                      reinterpret_cast<LPBYTE>(&value_w), &value_size_w);
-      RegCloseKey(subhkey);
-      value_size_w = ExpandEnvironmentStrings(value_w, expanded_value_w, kMaxStringLength);
-      
-      if (value_size_w && value_size_w < kMaxStringLength) {
-        cached_title = expanded_value_w;
-      } else {
-        cached_title = L"UnExpected Title";
+      // 注册表标题缺失时回退到中文，避免 VSCode 更新后显示英文 "Open with Code"。
+      if (cached_title.empty()) {
+        cached_title = L"\u4F7F\u7528 VSCode \u7F16\u8F91";  // "使用 VSCode 编辑"
       }
       title_cached = true;
     }
-    
-    return SHStrDup(cached_title.c_str(), name);
+
+    return SHStrDupW(cached_title.c_str(), name);
   }
 
   IFACEMETHODIMP GetIcon(IShellItemArray* items, PWSTR* icon) {
-    std::filesystem::path module_path{ wil::GetModuleFileNameW<std::wstring>(wil::GetModuleInstanceHandle()) };
-    module_path = module_path.remove_filename().parent_path().parent_path().parent_path();
-    module_path /= EXE_NAME;
+    std::filesystem::path module_path = std::filesystem::path("D:\\App\\VSCode\\Code.exe");
+
+    if (!std::filesystem::exists(module_path)) {
+        return E_FAIL;
+    }
+    
+    // doesn't work, had to use hardcoded "Program Files" path
+    // if (!std::filesystem::exists(module_path)) {
+    //   PWSTR ProgramFilesPath = nullptr;
+    //   HRESULT hr = SHGetKnownFolderPath(FOLDERID_ProgramFiles, 0, NULL, &ProgramFilesPath);
+    //   std::filesystem::path fallback_path = std::filesystem::path(ProgramFilesPath) / DIR_NAME / EXE_NAME;
+    //   CoTaskMemFree(ProgramFilesPath);
+    //   if (std::filesystem::exists(fallback_path)) {
+    //     module_path = fallback_path;
+    //   } else {
+    //     return E_FAIL;
+    //   }
+    // }
+
     return SHStrDupW(module_path.c_str(), icon);
   }
 
@@ -182,7 +183,7 @@ class __declspec(uuid(DLL_UUID)) ExplorerCommandHandler final : public RuntimeCl
   }
 
   IFACEMETHODIMP GetState(IShellItemArray* items, BOOL okToBeSlow, EXPCMDSTATE* cmdState) {
-    *cmdState = IsContextMenuEnabled() ? ECS_ENABLED : ECS_HIDDEN;
+    *cmdState = ECS_ENABLED;
     return S_OK;
   }
 
@@ -197,28 +198,44 @@ class __declspec(uuid(DLL_UUID)) ExplorerCommandHandler final : public RuntimeCl
   }
 
   IFACEMETHODIMP Invoke(IShellItemArray* items, IBindCtx* bindCtx) {
-    if (items) {
-      std::filesystem::path module_path{ wil::GetModuleFileNameW<std::wstring>(wil::GetModuleInstanceHandle()) };
-      module_path = module_path.remove_filename().parent_path().parent_path().parent_path();
-      module_path /= EXE_NAME;
-      DWORD count;
-      RETURN_IF_FAILED(items->GetCount(&count));
-      for (DWORD i = 0; i < count; ++i) {
-        ComPtr<IShellItem> item;
-        auto result = items->GetItemAt(i, &item);
-        if (SUCCEEDED(result)) {
-          wil::unique_cotaskmem_string path;
-          result = item->GetDisplayName(SIGDN_FILESYSPATH, &path);
-          if (SUCCEEDED(result)) {
-            HINSTANCE ret = ShellExecuteW(nullptr, L"open", module_path.c_str(), QuoteForCommandLineArg(path.get()).c_str(), nullptr, SW_SHOW);
-            if ((INT_PTR)ret <= HINSTANCE_ERROR) {
-              RETURN_LAST_ERROR();
-            }
+      if (items) {
+          std::filesystem::path module_path = std::filesystem::path("D:\\App\\VSCode\\Code.exe");
+
+          if (!std::filesystem::exists(module_path)) {
+              return E_FAIL;
           }
-        }
+
+          // doesn't work, had to use hardcoded "Program Files" path
+          // if (!std::filesystem::exists(module_path)) {
+          //   PWSTR ProgramFilesPath = nullptr;
+          //   HRESULT hr = SHGetKnownFolderPath(FOLDERID_ProgramFiles, 0, NULL, &ProgramFilesPath);
+          //   std::filesystem::path fallback_path = std::filesystem::path(ProgramFilesPath) / DIR_NAME / EXE_NAME;
+          //   CoTaskMemFree(ProgramFilesPath);
+          //   if (std::filesystem::exists(fallback_path)) {
+          //     module_path = fallback_path;
+          //   } else {
+          //     return E_FAIL;
+          //   }
+          // }
+
+          DWORD count;
+          RETURN_IF_FAILED(items->GetCount(&count));
+          for (DWORD i = 0; i < count; ++i) {
+              ComPtr<IShellItem> item;
+              auto result = items->GetItemAt(i, &item);
+              if (SUCCEEDED(result)) {
+                  wil::unique_cotaskmem_string path;
+                  result = item->GetDisplayName(SIGDN_FILESYSPATH, &path);
+                  if (SUCCEEDED(result)) {
+                      HINSTANCE ret = ShellExecuteW(nullptr, L"open", module_path.c_str(), QuoteForCommandLineArg(path.get()).c_str(), nullptr, SW_SHOW);
+                      if ((INT_PTR)ret <= HINSTANCE_ERROR) {
+                          RETURN_LAST_ERROR();
+                      }
+                  }
+              }
+          }
       }
-    }
-    return S_OK;
+      return S_OK;
   }
 };
 
@@ -240,3 +257,5 @@ STDAPI DllGetActivationFactory(HSTRING activatableClassId,
                                IActivationFactory** factory) {
   return Module<ModuleType::InProc>::GetModule().GetActivationFactory(activatableClassId, factory);
 }
+
+

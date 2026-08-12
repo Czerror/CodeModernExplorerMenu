@@ -1,0 +1,5 @@
+# Keep patch files byte-identical (no CRLF conversion, no BOM).
+patches/source-patches/*.patch -text
+
+# Shell scripts must stay LF even on Windows checkouts.
+*.sh text eol=lf

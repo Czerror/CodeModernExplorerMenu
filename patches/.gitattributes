@@ -1,0 +1,4 @@
+# Attributes live inside patches/ so that `git checkout main -- patches`
+# restores them together with the patch set.
+source-patches/*.patch -text
+*.sh text eol=lf
