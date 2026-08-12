@@ -65,6 +65,12 @@ Only the script's own directory is searched for `Code.exe`; if it is missing, th
 script asks you to place it in the VSCode portable root. Use `-VSCodePath` to
 override the root and `-DryRun` to preview without changes.
 
+The script adapts to VSCode updates: each run detects the current versioned
+folder, copies the current official appx/DLL, unregisters the old package and
+registers the new one, and cleans up stale copies from old version folders. If a
+newer VSCode is detected than the one currently registered, the menu shows a
+warning. Just re-run the script after every VSCode update.
+
 It copies the official appx files into `<root>\<versioned-folder>\appx`
 (the layout the official shell extension expects), registers the Microsoft-signed
 sparse package (no Developer Mode needed), writes the Chinese title into
