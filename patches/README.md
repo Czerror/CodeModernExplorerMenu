@@ -26,7 +26,7 @@ patches/
 ```powershell
 git remote add upstream https://github.com/microsoft/vscode-explorer-command.git  # once
 git switch -c dev upstream/main                                                   # once
-powershell -ExecutionPolicy Bypass -File patches\sync-upstream.ps1
+pwsh -ExecutionPolicy Bypass -File patches\sync-upstream.ps1
 ```
 
 The sync script: fetches upstream, resets `dev` to `upstream/main`, restores
@@ -39,7 +39,7 @@ resulting tree uses canonical LF line endings regardless of local `core.autocrlf
 ```powershell
 git reset --hard upstream/main
 git checkout main -- patches
-powershell -ExecutionPolicy Bypass -File patches\apply-patches.ps1
+pwsh -ExecutionPolicy Bypass -File patches\apply-patches.ps1
 ```
 
 ## Regenerate a source patch

@@ -1,7 +1,7 @@
 # Applies the fork patches onto a clean upstream/main checkout.
 #
 # Usage (from repo root, after `git reset --hard upstream/main`):
-#   powershell -ExecutionPolicy Bypass -File patches\apply-patches.ps1 [-Commit]
+#   pwsh -ExecutionPolicy Bypass -File patches\apply-patches.ps1 [-Commit]
 param(
   [switch]$Commit
 )
