@@ -91,7 +91,45 @@ function Remove-LegacyMenu {
 function Get-VersionDir([string]$Root) {
     return Get-ChildItem -LiteralPath $Root -Directory -ErrorAction SilentlyContinue |
         Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'resources\app\package.json') } |
+        Sort-Object LastWriteTime -Descending |
         Select-Object -First 1
+}
+
+function Remove-ManagedAppxCopies([string]$Root, [string]$ExceptDir = '') {
+    # 清理旧版本目录里由本脚本复制的 appx（只删含 code_x64.appx 的 appx 目录）
+    Get-ChildItem -LiteralPath $Root -Directory -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.FullName -ne $ExceptDir -and
+            (Test-Path -LiteralPath (Join-Path $_.FullName "appx\$AppxFileName"))
+        } |
+        ForEach-Object {
+            Remove-Item -LiteralPath (Join-Path $_.FullName 'appx') -Recurse -Force -ErrorAction SilentlyContinue
+        }
+}
+
+function Get-AppxVersion([string]$AppxPath) {
+    try {
+        Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($AppxPath)
+        $entry = $zip.GetEntry('AppxManifest.xml')
+        if (-not $entry) {
+            $zip.Dispose()
+            return $null
+        }
+        $reader = [System.IO.StreamReader]::new($entry.Open())
+        $xml = [xml]$reader.ReadToEnd()
+        $reader.Dispose()
+        $zip.Dispose()
+        return [string]$xml.Package.Identity.Version
+    } catch {
+        return $null
+    }
+}
+
+function Get-RegisteredVersion {
+    $pkg = Get-AppxPackage -Name $OfficialPackageName -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($pkg) { return [string]$pkg.Version }
+    return $null
 }
 
 function Invoke-Register([string]$Root) {
@@ -111,6 +149,7 @@ function Invoke-Register([string]$Root) {
     New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
     Copy-Item -LiteralPath $sourceAppx -Destination (Join-Path $targetDir $AppxFileName) -Force
     Copy-Item -LiteralPath $sourceDll -Destination (Join-Path $targetDir $DllFileName) -Force
+    Remove-ManagedAppxCopies -Root $Root -ExceptDir $versionDir.FullName
 
     Get-AppxPackage -Name $OfficialPackageName -ErrorAction SilentlyContinue |
         ForEach-Object { Remove-AppxPackage -Package $_.PackageFullName -ErrorAction SilentlyContinue }
@@ -139,13 +178,7 @@ function Invoke-Uninstall([string]$Root) {
     Remove-RegistryKey $RegKeyName
     Remove-LegacyMenu
 
-    $versionDir = Get-VersionDir $Root
-    if ($versionDir) {
-        $targetDir = Join-Path $versionDir.FullName 'appx'
-        if (Test-Path -LiteralPath (Join-Path $targetDir $AppxFileName)) {
-            Remove-Item -LiteralPath $targetDir -Recurse -Force
-        }
-    }
+    Remove-ManagedAppxCopies -Root $Root
     Write-Log '  已删除右键菜单注册'
 }
 
@@ -212,7 +245,7 @@ function Write-Banner {
     try { Clear-Host } catch {}
     Write-Host ''
     Write-Host '  ╔══════════════════════════════════════════════╗' -ForegroundColor Cyan
-    Write-Host '  ║        VSCode 便携版右键菜单 v1.2           ║' -ForegroundColor Cyan
+    Write-Host '  ║        VSCode 便携版右键菜单 v1.3           ║' -ForegroundColor Cyan
     Write-Host '  ╚══════════════════════════════════════════════╝' -ForegroundColor Cyan
     Write-Host ''
 }
@@ -325,6 +358,14 @@ $menuOptions = @(
 while ($true) {
     Write-Banner
     Write-Host "  VSCode 目录: $root" -ForegroundColor DarkGray
+    $appxVersion = Get-AppxVersion (Join-Path $root "appx\$AppxFileName")
+    $registeredVersion = Get-RegisteredVersion
+    if ($appxVersion -and $registeredVersion -and $appxVersion -ne $registeredVersion) {
+        Write-Host "  [提示] 检测到 VSCode 已更新（已注册: $registeredVersion / 当前: $appxVersion）" -ForegroundColor Yellow
+        Write-Host '         请选择 [1] 重新注册，否则菜单可能失效' -ForegroundColor Yellow
+    } elseif (-not $registeredVersion) {
+        Write-Host '  [提示] 当前未注册右键菜单' -ForegroundColor DarkGray
+    }
     $choice = Show-Menu -Title '主菜单' -Options $menuOptions -Default 0 -ShowDesc
     switch ($choice) {
         0 { Run-Action -ActionName 'register' -ConfirmText '确认注册右键菜单?' }
