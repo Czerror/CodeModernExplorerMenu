@@ -44,3 +44,19 @@ Notes:
 - The custom menu uses its own verb ids (`OpenWithCodeModernExplorerMenu` /
   `OpenWithCodeInsidersModernExplorerMenu`) so VSCode's official `OpenWithCode` menu
   does not override it after VSCode updates.
+
+## Quick register (no MSI)
+
+For a portable VSCode (e.g. `D:\App\VSCode`), register the context menu directly
+with the built package files (DLL + appx):
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File scripts\register-menu.ps1
+pwsh -ExecutionPolicy Bypass -File scripts\register-menu.ps1 -Uninstall
+```
+
+The script copies the DLL/manifest to `%LOCALAPPDATA%\Programs\Code Modern Explorer Menu`,
+registers the sparse package (temporarily toggles Developer Mode if needed), writes the
+Chinese title into `HKCU`/`HKLM`, and cleans up the old custom registration. Use `-DryRun`
+to preview, `-Variant insiders` for Insiders, and `-RestartExplorer` to refresh the menu
+immediately.
