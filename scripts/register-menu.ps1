@@ -27,7 +27,7 @@ pwsh -ExecutionPolicy Bypass -File scripts\register-menu.ps1 -Uninstall
 pwsh -ExecutionPolicy Bypass -File scripts\register-menu.ps1 -RestartExplorer
 #>
 param(
-    [string]$VSCodePath = 'D:\App\VSCode',
+    [string]$VSCodePath = '',
     [switch]$Uninstall,
     [switch]$RestartExplorer,
     [switch]$DryRun
@@ -45,6 +45,21 @@ $RegKeyName = 'VSCodeContextMenu'
 $LegacyPackageNames = @('Code.Modern.Explorer.Menu', 'Code.Insiders.Modern.Explorer.Menu')
 $LegacyRegKeys = @('CodeModernExplorerMenu', 'CodeInsidersModernExplorerMenu')
 
+function Find-VSCodeRoot([string]$StartDir) {
+    # Walk up from the script location until Code.exe is found, so the whole
+    # portable folder can be moved freely together with this script.
+    $dir = $StartDir
+    while ($dir) {
+        if (Test-Path -LiteralPath (Join-Path $dir 'Code.exe')) {
+            return $dir
+        }
+        $parent = Split-Path -Parent $dir
+        if (-not $parent -or $parent -eq $dir) { break }
+        $dir = $parent
+    }
+    return $null
+}
+
 function Remove-RegistryKey([string]$KeyName) {
     foreach ($root in @('HKCU:', 'HKLM:')) {
         $path = "$root\Software\Classes\$KeyName"
@@ -55,8 +70,13 @@ function Remove-RegistryKey([string]$KeyName) {
 }
 
 if ($DryRun) {
+    $autoDetected = $false
+    if (-not $VSCodePath) {
+        $VSCodePath = Find-VSCodeRoot $PSScriptRoot
+        $autoDetected = $true
+    }
     Write-Host '=== DRY RUN ==='
-    Write-Host "VSCodePath : $VSCodePath"
+    Write-Host ("VSCodePath : {0} {1}" -f $VSCodePath, $(if ($autoDetected) { '(auto-detected)' } else { '(specified)' }))
     if ($Uninstall) {
         Write-Host 'Action     : uninstall (remove official package, registry keys, copied appx)'
     } else {
@@ -95,8 +115,12 @@ if (-not ([Security.Principal.WindowsPrincipal]::new([Security.Principal.Windows
     exit
 }
 
+# Auto-detect the portable VSCode root next to (or above) this script.
+if (-not $VSCodePath) {
+    $VSCodePath = Find-VSCodeRoot $PSScriptRoot
+}
 if (-not (Test-Path -LiteralPath (Join-Path $VSCodePath 'Code.exe'))) {
-    throw "Code.exe not found under '$VSCodePath'. Pass -VSCodePath to point at the portable VSCode root."
+    throw "Code.exe not found. Put this script inside the portable VSCode folder or pass -VSCodePath to point at its root."
 }
 
 $versionDir = Get-ChildItem -LiteralPath $VSCodePath -Directory -ErrorAction SilentlyContinue |
