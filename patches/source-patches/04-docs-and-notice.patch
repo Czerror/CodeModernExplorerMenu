@@ -42,10 +42,10 @@ index 00afb3f..d7948d6 100644
  
  Open Source License/Copyright Notice.
 diff --git a/README.md b/README.md
-index a76d561..cccd9d2 100644
+index a76d561..cdc95b1 100644
 --- a/README.md
 +++ b/README.md
-@@ -1,30 +1,79 @@
+@@ -1,30 +1,81 @@
 -# vscode-explorer-command
 +# Code Modern Explorer Menu
 +An MSI package that adds the Windows 11 Modern Explorer menu for Microsoft Visual Studio Code.
@@ -135,11 +135,13 @@ index a76d561..cccd9d2 100644
 +script asks you to place it in the VSCode portable root. Use `-VSCodePath` to
 +override the root and `-DryRun` to preview without changes.
 +
-+The script adapts to VSCode updates: each run detects the current versioned
-+folder, copies the current official appx/DLL, unregisters the old package and
-+registers the new one, and cleans up stale copies from old version folders. If a
-+newer VSCode is detected than the one currently registered, the menu shows a
-+warning. Just re-run the script after every VSCode update.
++The script adapts to VSCode updates: the registration uses a fixed external
++location `<root>\.menu\appx` (two levels below `Code.exe`, which is exactly what
++the official DLL expects), so the versioned folder name (e.g. `a5b5009513`) can
++change freely with every update. Each run copies the current official appx/DLL,
++unregisters the old package and registers the new one, and cleans up stale copies
++from old version folders. If a newer VSCode is detected than the one currently
++registered, the menu shows a warning. Just re-run the script after every update.
 +
 +It copies the official appx files into `<root>\<versioned-folder>\appx`
 +(the layout the official shell extension expects), registers the Microsoft-signed

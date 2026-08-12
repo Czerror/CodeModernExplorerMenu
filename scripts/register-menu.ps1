@@ -96,10 +96,11 @@ function Get-VersionDir([string]$Root) {
 }
 
 function Remove-ManagedAppxCopies([string]$Root, [string]$ExceptDir = '') {
-    # 清理旧版本目录里由本脚本复制的 appx（只删含 code_x64.appx 的 appx 目录）
+    # 只清理版本目录（含 resources\app\package.json）里由本脚本复制的 appx，不影响固定位置 .menu
     Get-ChildItem -LiteralPath $Root -Directory -ErrorAction SilentlyContinue |
         Where-Object {
             $_.FullName -ne $ExceptDir -and
+            (Test-Path -LiteralPath (Join-Path $_.FullName 'resources\app\package.json')) -and
             (Test-Path -LiteralPath (Join-Path $_.FullName "appx\$AppxFileName"))
         } |
         ForEach-Object {
@@ -133,13 +134,10 @@ function Get-RegisteredVersion {
 }
 
 function Invoke-Register([string]$Root) {
-    $versionDir = Get-VersionDir $Root
-    if (-not $versionDir) {
-        throw '未找到版本目录 (resources\app\package.json)，VSCode 布局不受支持'
-    }
-
     $sourceDir = Join-Path $Root 'appx'
-    $targetDir = Join-Path $versionDir.FullName 'appx'
+    # 固定外部位置：.menu\appx 位于根目录下两层，官方 DLL 上溯 2 级即命中根目录 Code.exe，
+    # 不依赖随版本变化的哈希目录名（如 a5b5009513）。
+    $targetDir = Join-Path $Root '.menu\appx'
     $sourceAppx = Join-Path $sourceDir $AppxFileName
     $sourceDll = Join-Path $sourceDir $DllFileName
     if (-not (Test-Path -LiteralPath $sourceAppx) -or -not (Test-Path -LiteralPath $sourceDll)) {
@@ -149,7 +147,7 @@ function Invoke-Register([string]$Root) {
     New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
     Copy-Item -LiteralPath $sourceAppx -Destination (Join-Path $targetDir $AppxFileName) -Force
     Copy-Item -LiteralPath $sourceDll -Destination (Join-Path $targetDir $DllFileName) -Force
-    Remove-ManagedAppxCopies -Root $Root -ExceptDir $versionDir.FullName
+    Remove-ManagedAppxCopies -Root $Root -ExceptDir $targetDir
 
     Get-AppxPackage -Name $OfficialPackageName -ErrorAction SilentlyContinue |
         ForEach-Object { Remove-AppxPackage -Package $_.PackageFullName -ErrorAction SilentlyContinue }
@@ -178,6 +176,10 @@ function Invoke-Uninstall([string]$Root) {
     Remove-RegistryKey $RegKeyName
     Remove-LegacyMenu
 
+    $menuDir = Join-Path $Root '.menu\appx'
+    if (Test-Path -LiteralPath (Join-Path $menuDir $AppxFileName)) {
+        Remove-Item -LiteralPath $menuDir -Recurse -Force
+    }
     Remove-ManagedAppxCopies -Root $Root
     Write-Log '  已删除右键菜单注册'
 }
@@ -227,13 +229,13 @@ if ($DryRun) {
         exit 1
     }
     $versionDir = Get-VersionDir $root
-    if (-not $versionDir) {
-        Write-Host 'ERROR: 未找到版本目录 (resources\app\package.json)'
-        exit 1
-    }
     Write-Host "VSCodePath : $root"
-    Write-Host "VersionDir : $($versionDir.FullName)"
-    Write-Host "TargetDir  : $(Join-Path $versionDir.FullName 'appx')"
+    if ($versionDir) {
+        Write-Host "VersionDir : $($versionDir.FullName)  (随版本变化，脚本不依赖它)"
+    } else {
+        Write-Host 'VersionDir : (未检测到版本目录，不影响注册)'
+    }
+    Write-Host "TargetDir  : $(Join-Path $root '.menu\appx')  (固定位置)"
     Write-Host "Package    : $OfficialPackageName (微软签名，无需开发者模式)"
     Write-Host "Title key  : $RegKeyName = $TitleText (HKCU + HKLM)"
     Write-Host '=== 未做任何修改 ==='
@@ -245,7 +247,7 @@ function Write-Banner {
     try { Clear-Host } catch {}
     Write-Host ''
     Write-Host '  ╔══════════════════════════════════════════════╗' -ForegroundColor Cyan
-    Write-Host '  ║        VSCode 便携版右键菜单 v1.3           ║' -ForegroundColor Cyan
+    Write-Host '  ║        VSCode 便携版右键菜单 v1.4           ║' -ForegroundColor Cyan
     Write-Host '  ╚══════════════════════════════════════════════╝' -ForegroundColor Cyan
     Write-Host ''
 }
