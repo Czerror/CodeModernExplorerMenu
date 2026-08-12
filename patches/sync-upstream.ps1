@@ -3,7 +3,7 @@
 # Requires: an `upstream` remote pointing at microsoft/vscode-explorer-command
 # and a local `main` branch that contains the latest `patches/` directory.
 #
-# Usage: powershell -ExecutionPolicy Bypass -File patches\sync-upstream.ps1 [-Push]
+# Usage: pwsh -ExecutionPolicy Bypass -File patches\sync-upstream.ps1 [-Push]
 param(
   [switch]$Push
 )
