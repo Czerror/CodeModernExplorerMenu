@@ -8,7 +8,8 @@ param(
   [switch]$Push
 )
 
-$ErrorActionPreference = 'Stop'
+# 兼容 Windows PowerShell 5.1 与 7：不用 Stop，关键失败点用 $LASTEXITCODE 显式抛出。
+$ErrorActionPreference = 'Continue'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Set-Location $repoRoot
 
@@ -22,6 +23,8 @@ git reset --hard upstream/main
 if ($LASTEXITCODE -ne 0) { throw 'git reset failed' }
 
 # The reset removed patches/; restore the latest copy from the release branch.
+# Restore attributes first so .patch / .sh files are checked out with LF.
+git checkout main -- .gitattributes
 git checkout main -- patches
 
 # Apply all fork patches.

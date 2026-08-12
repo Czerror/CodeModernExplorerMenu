@@ -52,7 +52,10 @@ Keep the LF line endings and no BOM (PowerShell 7 `>` does this by default).
 ## Troubleshooting
 
 - `git apply` context shifts: the scripts fall back to `git apply --3way`, which
-  uses the blob SHAs in the patch and usually succeeds.
+  uses the blob SHAs in the patch and usually succeeds. `--ignore-whitespace`
+  handles CRLF checkouts on Windows.
+- `patches/.gitattributes` is restored by the sync script before the patch files
+  so `.patch` stays LF even with `core.autocrlf=true`.
 - `deps/wil` submodule: the apply scripts remove it because the fork uses vcpkg;
   if a checkout refuses to switch branches due to the submodule, run
   `git submodule deinit -f deps/wil` first.

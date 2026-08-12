@@ -35,9 +35,9 @@ done
 # 3. Apply source patches in dependency order.
 for patch in patches/source-patches/*.patch; do
   echo "Applying $(basename "$patch") ..."
-  if ! git apply --whitespace=nowarn "$patch"; then
+  if ! git apply --whitespace=nowarn --ignore-whitespace "$patch"; then
     echo "  git apply failed, retrying with --3way ..."
-    git apply --3way --whitespace=nowarn "$patch"
+    git apply --3way --whitespace=nowarn --ignore-whitespace "$patch"
   fi
 done
 

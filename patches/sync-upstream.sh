@@ -8,6 +8,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 git fetch upstream
 git switch dev
 git reset --hard upstream/main
+git checkout main -- .gitattributes
 git checkout main -- patches
 bash patches/apply-patches.sh
 git add -A
