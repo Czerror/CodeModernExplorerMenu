@@ -1,0 +1,389 @@
+diff --git a/.config/1espt/PipelineAutobaseliningConfig.yml b/.config/1espt/PipelineAutobaseliningConfig.yml
+deleted file mode 100644
+index 6b2dd50..0000000
+--- a/.config/1espt/PipelineAutobaseliningConfig.yml
++++ /dev/null
+@@ -1,21 +0,0 @@
+-## DO NOT MODIFY THIS FILE MANUALLY. This is part of auto-baselining from 1ES Pipeline Templates. Go to [https://aka.ms/1espt-autobaselining] for more details.
+-
+-pipelines:
+-  337:
+-    retail:
+-      source:
+-        credscan:
+-          lastModifiedDate: 2025-07-24
+-        eslint:
+-          lastModifiedDate: 2025-07-24
+-        psscriptanalyzer:
+-          lastModifiedDate: 2025-07-24
+-        accessibilityinsights:
+-          lastModifiedDate: 2025-07-24
+-      binary:
+-        credscan:
+-          lastModifiedDate: 2025-07-24
+-        binskim:
+-          lastModifiedDate: 2025-07-24
+-        spotbugs:
+-          lastModifiedDate: 2025-07-24
+diff --git a/.config/guardian/.gdnbaselines b/.config/guardian/.gdnbaselines
+deleted file mode 100644
+index 2b73adf..0000000
+--- a/.config/guardian/.gdnbaselines
++++ /dev/null
+@@ -1,73 +0,0 @@
+-{
+-  "properties": {
+-    "helpUri": "https://eng.ms/docs/microsoft-security/security/azure-security/cloudai-security-fundamentals-engineering/security-integration/guardian-wiki/microsoft-guardian/general/baselines"
+-  },
+-  "version": "1.0.0",
+-  "baselines": {
+-    "default": {
+-      "name": "default",
+-      "createdDate": "2025-07-24 22:08:27Z",
+-      "lastUpdatedDate": "2025-07-24 22:08:27Z"
+-    }
+-  },
+-  "results": {
+-    "4a6b25e0b3aea187fc1e53d51e01caeabbe62585e176d36f48232c3bbf0c9077": {
+-      "signature": "4a6b25e0b3aea187fc1e53d51e01caeabbe62585e176d36f48232c3bbf0c9077",
+-      "alternativeSignatures": [],
+-      "target": "node-gyp/test/fixtures/certs.js",
+-      "line": 2,
+-      "memberOf": [
+-        "default"
+-      ],
+-      "tool": "credscan",
+-      "ruleId": "CSCAN-GENERAL0020",
+-      "createdDate": "2025-07-24 22:08:27Z",
+-      "expirationDate": "2026-01-10 22:12:27Z",
+-      "justification": "This error is baselined with an expiration date of 180 days from 2025-07-24 22:12:27Z"
+-    },
+-    "772e22b80b32213274449f150729538f73295ae2144bfa0eb35cf6d90fd1934c": {
+-      "signature": "772e22b80b32213274449f150729538f73295ae2144bfa0eb35cf6d90fd1934c",
+-      "alternativeSignatures": [],
+-      "target": "node-gyp/test/fixtures/certs.js",
+-      "line": 57,
+-      "memberOf": [
+-        "default"
+-      ],
+-      "tool": "credscan",
+-      "ruleId": "CSCAN-GENERAL0020",
+-      "createdDate": "2025-07-24 22:08:27Z",
+-      "expirationDate": "2026-01-10 22:12:27Z",
+-      "justification": "This error is baselined with an expiration date of 180 days from 2025-07-24 22:12:27Z"
+-    },
+-    "ec196711eb615090c0fd0a3089031c6611e7afc5546db0ac994faec8beb4ec33": {
+-      "signature": "ec196711eb615090c0fd0a3089031c6611e7afc5546db0ac994faec8beb4ec33",
+-      "alternativeSignatures": [
+-        "8441789d8d406bd42106d0bd2d445afff69abe41c0b11f4193973c28221d6c8f"
+-      ],
+-      "target": "out/Default/code_insider_explorer_command.dll",
+-      "memberOf": [
+-        "default"
+-      ],
+-      "tool": "binskim",
+-      "ruleId": "BA2007",
+-      "createdDate": "2025-07-24 22:09:08Z",
+-      "expirationDate": "2026-01-10 22:12:27Z",
+-      "justification": "This error is baselined with an expiration date of 180 days from 2025-07-24 22:12:27Z"
+-    },
+-    "e04c59fabb3bd81497dcd3545154fd63bb275b0bbaa9c586da94ac0f0a27b926": {
+-      "signature": "e04c59fabb3bd81497dcd3545154fd63bb275b0bbaa9c586da94ac0f0a27b926",
+-      "alternativeSignatures": [
+-        "848da9a7d8e6652f7a527e7c211d99ffa7bf5c35f7d0ff01ee8df573f7fa123c"
+-      ],
+-      "target": "out/Default/code_explorer_command.dll",
+-      "memberOf": [
+-        "default"
+-      ],
+-      "tool": "binskim",
+-      "ruleId": "BA2007",
+-      "createdDate": "2025-07-24 22:10:37Z",
+-      "expirationDate": "2026-01-10 22:12:27Z",
+-      "justification": "This error is baselined with an expiration date of 180 days from 2025-07-24 22:12:27Z"
+-    }
+-  }
+-}
+\ No newline at end of file
+diff --git a/CODE_OF_CONDUCT.md b/CODE_OF_CONDUCT.md
+deleted file mode 100644
+index f9ba8cf..0000000
+--- a/CODE_OF_CONDUCT.md
++++ /dev/null
+@@ -1,9 +0,0 @@
+-# Microsoft Open Source Code of Conduct
+-
+-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
+-
+-Resources:
+-
+-- [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/)
+-- [Microsoft Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/)
+-- Contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with questions or concerns
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+deleted file mode 100644
+index ebf23ac..0000000
+--- a/CONTRIBUTING.md
++++ /dev/null
+@@ -1,14 +0,0 @@
+-# Contributing
+-
+-This project welcomes contributions and suggestions. Most contributions require you to
+-agree to a Contributor License Agreement (CLA) declaring that you have the right to,
+-and actually do, grant us the rights to use your contribution. For details, visit
+-https://cla.microsoft.com.
+-
+-When you submit a pull request, a CLA-bot will automatically determine whether you need
+-to provide a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the
+-instructions provided by the bot. You will only need to do this once across all repositories using our CLA.
+-
+-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
+-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/)
+-or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+diff --git a/CodeQL.yml b/CodeQL.yml
+deleted file mode 100644
+index 88f49d1..0000000
+--- a/CodeQL.yml
++++ /dev/null
+@@ -1,7 +0,0 @@
+-path_classifiers:
+-  # The default behavior is to tag library code as `library`. Results are hidden
+-  # for library code. You can tag further files as being library code by adding them
+-  # to the `library` section.
+-  library:
+-    - deps
+-    - node-gyp
+diff --git a/SECURITY.md b/SECURITY.md
+deleted file mode 100644
+index 869fdfe..0000000
+--- a/SECURITY.md
++++ /dev/null
+@@ -1,41 +0,0 @@
+-<!-- BEGIN MICROSOFT SECURITY.MD V0.0.7 BLOCK -->
+-
+-## Security
+-
+-Microsoft takes the security of our software products and services seriously, which includes all source code repositories managed through our GitHub organizations, which include [Microsoft](https://github.com/Microsoft), [Azure](https://github.com/Azure), [DotNet](https://github.com/dotnet), [AspNet](https://github.com/aspnet), [Xamarin](https://github.com/xamarin), and [our GitHub organizations](https://opensource.microsoft.com/).
+-
+-If you believe you have found a security vulnerability in any Microsoft-owned repository that meets [Microsoft's definition of a security vulnerability](https://aka.ms/opensource/security/definition), please report it to us as described below.
+-
+-## Reporting Security Issues
+-
+-**Please do not report security vulnerabilities through public GitHub issues.**
+-
+-Instead, please report them to the Microsoft Security Response Center (MSRC) at [https://msrc.microsoft.com/create-report](https://aka.ms/opensource/security/create-report).
+-
+-If you prefer to submit without logging in, send email to [secure@microsoft.com](mailto:secure@microsoft.com).  If possible, encrypt your message with our PGP key; please download it from the [Microsoft Security Response Center PGP Key page](https://aka.ms/opensource/security/pgpkey).
+-
+-You should receive a response within 24 hours. If for some reason you do not, please follow up via email to ensure we received your original message. Additional information can be found at [microsoft.com/msrc](https://aka.ms/opensource/security/msrc). 
+-
+-Please include the requested information listed below (as much as you can provide) to help us better understand the nature and scope of the possible issue:
+-
+-  * Type of issue (e.g. buffer overflow, SQL injection, cross-site scripting, etc.)
+-  * Full paths of source file(s) related to the manifestation of the issue
+-  * The location of the affected source code (tag/branch/commit or direct URL)
+-  * Any special configuration required to reproduce the issue
+-  * Step-by-step instructions to reproduce the issue
+-  * Proof-of-concept or exploit code (if possible)
+-  * Impact of the issue, including how an attacker might exploit the issue
+-
+-This information will help us triage your report more quickly.
+-
+-If you are reporting for a bug bounty, more complete reports can contribute to a higher bounty award. Please visit our [Microsoft Bug Bounty Program](https://aka.ms/opensource/security/bounty) page for more details about our active programs.
+-
+-## Preferred Languages
+-
+-We prefer all communications to be in English.
+-
+-## Policy
+-
+-Microsoft follows the principle of [Coordinated Vulnerability Disclosure](https://aka.ms/opensource/security/cvd).
+-
+-<!-- END MICROSOFT SECURITY.MD BLOCK -->
+diff --git a/SUPPORT.md b/SUPPORT.md
+deleted file mode 100644
+index 291d4d4..0000000
+--- a/SUPPORT.md
++++ /dev/null
+@@ -1,25 +0,0 @@
+-# TODO: The maintainer of this repo has not yet edited this file
+-
+-**REPO OWNER**: Do you want Customer Service & Support (CSS) support for this product/project?
+-
+-- **No CSS support:** Fill out this template with information about how to file issues and get help.
+-- **Yes CSS support:** Fill out an intake form at [aka.ms/onboardsupport](https://aka.ms/onboardsupport). CSS will work with/help you to determine next steps.
+-- **Not sure?** Fill out an intake as though the answer were "Yes". CSS will help you decide.
+-
+-*Then remove this first heading from this SUPPORT.MD file before publishing your repo.*
+-
+-# Support
+-
+-## How to file issues and get help  
+-
+-This project uses GitHub Issues to track bugs and feature requests. Please search the existing 
+-issues before filing new issues to avoid duplicates.  For new issues, file your bug or 
+-feature request as a new Issue.
+-
+-For help and questions about using this project, please **REPO MAINTAINER: INSERT INSTRUCTIONS HERE 
+-FOR HOW TO ENGAGE REPO OWNERS OR COMMUNITY FOR HELP. COULD BE A STACK OVERFLOW TAG OR OTHER
+-CHANNEL. WHERE WILL YOU HELP PEOPLE?**.
+-
+-## Microsoft Support Policy  
+-
+-Support for this **PROJECT or PRODUCT** is limited to the resources listed above.
+diff --git a/ci/azure-pipelines.yml b/ci/azure-pipelines.yml
+deleted file mode 100644
+index 7d27f45..0000000
+--- a/ci/azure-pipelines.yml
++++ /dev/null
+@@ -1,112 +0,0 @@
+-parameters:
+-  - name: release
+-    displayName: Create GitHub Release
+-    type: boolean
+-    default: false
+-
+-trigger:
+-  branches:
+-    include:
+-      - main
+-
+-pr:
+-- main
+-
+-name: $(Build.BuildId)
+-
+-resources:
+-  repositories:
+-    - repository: 1esPipelines
+-      type: git
+-      name: 1ESPipelineTemplates/1ESPipelineTemplates
+-      ref: refs/tags/release
+-
+-extends:
+-  template: v1/1ES.Official.PipelineTemplate.yml@1esPipelines
+-  parameters:
+-    sdl:
+-      sourceAnalysisPool: 1es-windows-2022-x64
+-      componentgovernance:
+-        ignoreDirectories: 'deps,out,node-gyp'
+-      armory:
+-        enabled: false # No ARM deployment files in this repository
+-      createAdoIssuesForJustificationsForDisablement: false
+-      tsa:
+-        enabled: false
+-
+-    stages:
+-      - stage: Windows
+-        jobs:
+-          - job: build_x64
+-            displayName: Build (x64)
+-            pool:
+-              name: 1es-windows-2022-x64
+-              os: windows
+-            variables:
+-              arch: x64
+-            steps:
+-              - template: ci/build-win32.yml@self
+-
+-          - job: build_arm64
+-            displayName: Build (ARM64)
+-            pool:
+-              name: 1es-windows-2022-x64
+-              os: windows
+-            variables:
+-              arch: arm64
+-            steps:
+-              - template: ci/build-win32.yml@self
+-
+-      - ${{ if parameters.release }}:
+-        - stage: Release
+-          dependsOn: Windows
+-          pool:
+-            name: 1es-ubuntu-22.04-x64
+-            os: linux
+-          jobs:
+-            - job: release
+-              templateContext:
+-                type: releaseJob
+-                isProduction: true
+-                inputs:
+-                  - input: pipelineArtifact
+-                    artifactName: win-x64
+-                    targetPath: $(Pipeline.Workspace)/win-x64
+-                  - input: pipelineArtifact
+-                    artifactName: win-arm64
+-                    targetPath: $(Pipeline.Workspace)/win-arm64
+-                  - input: pipelineArtifact
+-                    artifactName: win-x64-insider
+-                    targetPath: $(Pipeline.Workspace)/win-x64-insider
+-                  - input: pipelineArtifact
+-                    artifactName: win-arm64-insider
+-                    targetPath: $(Pipeline.Workspace)/win-arm64-insider
+-              steps:
+-                - script: cp $(Pipeline.Workspace)/win-x64/code_explorer_command.dll $(Build.ArtifactStagingDirectory)/code_explorer_command_x64.dll
+-                  displayName: Windows x64
+-                - script: cp $(Pipeline.Workspace)/win-arm64/code_explorer_command.dll $(Build.ArtifactStagingDirectory)/code_explorer_command_arm64.dll
+-                  displayName: Windows arm64
+-                - script: cp $(Pipeline.Workspace)/win-x64-insider/code_insider_explorer_command.dll $(Build.ArtifactStagingDirectory)/code_insider_explorer_command_x64.dll
+-                  displayName: Windows x64 Insider
+-                - script: cp $(Pipeline.Workspace)/win-arm64-insider/code_insider_explorer_command.dll $(Build.ArtifactStagingDirectory)/code_insider_explorer_command_arm64.dll
+-                  displayName: Windows arm64 Insider
+-                - script: (cd $(Build.ArtifactStagingDirectory) ; shasum -a 256 *.dll) > $(Build.ArtifactStagingDirectory)/SHASUMS256.txt
+-                  displayName: Compute checksums
+-                - script: |
+-                    mkdir -p $(Build.SourcesDirectory)/noop
+-                  displayName: Create empty directory
+-                - task: ComponentGovernanceComponentDetection@0
+-                  inputs:
+-                    sourceScanPath: $(Build.SourcesDirectory)/noop
+-                - task: GithubRelease@1
+-                  displayName: Create GitHub Release
+-                  inputs:
+-                    gitHubConnection: oauth
+-                    repositoryName: microsoft/vscode-explorer-command
+-                    assets: |
+-                      $(Build.ArtifactStagingDirectory)/*.dll
+-                      $(Build.ArtifactStagingDirectory)/SHASUMS256.txt
+-                    action: create
+-                    addChangeLog: false
+-                    tagSource: userSpecifiedTag
+-                    tag: v8.0.0-$(Build.BuildNumber)
+diff --git a/ci/build-win32.yml b/ci/build-win32.yml
+deleted file mode 100644
+index 27ffea7..0000000
+--- a/ci/build-win32.yml
++++ /dev/null
+@@ -1,32 +0,0 @@
+-steps:
+-- task: UsePythonVersion@0
+-  inputs:
+-    versionSpec: "3.x"
+-    addToPath: true
+-
+-- powershell: |
+-    git submodule update --init
+-    $env:GYP_MSVS_VERSION="2022"
+-    python3 .\gyp_library.py $(arch)
+-  displayName: Generate project solution
+-
+-- task: MSBuild@1
+-  inputs:
+-    solution: out/main.sln
+-    msbuildArchitecture: $(arch)
+-
+-- task: 1ES.PublishPipelineArtifact@1
+-  displayName: 'Publish DLL'
+-  inputs:
+-    targetPath: out/Default/code_insider_explorer_command.dll
+-    artifactName: win-$(arch)-insider
+-    sbomBuildDropPath: $(Build.ArtifactStagingDirectory)
+-    sbomBuildComponentPath: out/Default
+-
+-- task: 1ES.PublishPipelineArtifact@1
+-  displayName: 'Publish DLL'
+-  inputs:
+-    targetPath: out/Default/code_explorer_command.dll
+-    artifactName: win-$(arch)
+-    sbomBuildDropPath: $(Build.ArtifactStagingDirectory)
+-    sbomBuildComponentPath: out/Default
