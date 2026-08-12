@@ -34,7 +34,6 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repoRoot = Split-Path -Parent $PSScriptRoot
 $TitleText = "$([char]0x4F7F)$([char]0x7528) VSCode $([char]0x7F16)$([char]0x8F91)"  # "Use VSCode Edit" in Chinese
 
 $OfficialPackageName = 'Microsoft.VisualStudioCode'
@@ -87,11 +86,12 @@ if ($DryRun) {
 
 # Self-elevate (needed for HKLM registry writes).
 if (-not ([Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))) {
+    $elevatedShell = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh.exe' } else { 'powershell.exe' }
     $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $PSCommandPath + '"'))
     if ($Uninstall) { $argList += '-Uninstall' }
     if ($RestartExplorer) { $argList += '-RestartExplorer' }
     if ($VSCodePath) { $argList += '-VSCodePath', ('"' + $VSCodePath + '"') }
-    Start-Process -FilePath 'pwsh.exe' -ArgumentList $argList -Verb RunAs -Wait
+    Start-Process -FilePath $elevatedShell -ArgumentList $argList -Verb RunAs -Wait
     exit
 }
 
