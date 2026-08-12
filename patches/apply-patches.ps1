@@ -20,6 +20,7 @@ git rm -q --cached deps/wil 2>$null
 
 # 2. Copy feature files (pure new files, cannot conflict).
 $features = @(
+  '.gitattributes',
   '.editorconfig',
   '.github/workflows/build-win.yml',
   'AppxBlockMap.xml',

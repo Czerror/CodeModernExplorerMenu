@@ -14,6 +14,7 @@ git rm -q --cached deps/wil 2>/dev/null || true
 
 # 2. Copy feature files (pure new files, cannot conflict).
 features=(
+  '.gitattributes'
   '.editorconfig'
   '.github/workflows/build-win.yml'
   'AppxBlockMap.xml'

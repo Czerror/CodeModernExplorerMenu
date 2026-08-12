@@ -12,6 +12,7 @@ This fork is maintained as `upstream/main + patches`:
 patches/
   features/              pure new files, copied verbatim (cannot conflict)
   source-patches/        git diffs against upstream/main, applied with `git apply`
+  .gitattributes         keeps .patch files LF / byte-identical and *.sh at LF
     01-remove-upstream-only.patch   docs / Azure Pipelines / CodeQL / baselines
     02-build-and-deps.patch         main.gyp, gyp_library.py, config.gypi, .gitignore, .gitmodules
     03-explorer-command.patch       src/explorer_command.cc
