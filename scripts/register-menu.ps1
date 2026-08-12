@@ -1,24 +1,31 @@
 <#
 .SYNOPSIS
-VSCode portable context-menu tool (Windows 11 modern menu) with a small GUI.
+    VSCode 便携版右键菜单注册/删除工具 (Windows 11 现代菜单)
 
 .DESCRIPTION
-Place this script (and register-menu.cmd) directly inside the VSCode portable
-root, next to Code.exe. Double-click register-menu.cmd to open the GUI with two
-buttons:
+    交互式脚本：把本脚本放到 VSCode 便携版根目录（与 Code.exe 同一目录），
+    运行后显示菜单：
+        [1] 注册右键菜单
+        [2] 删除右键菜单
+        [3] 退出
+    只搜索脚本所在目录的 Code.exe，不会向上查找。
 
-    [Register menu]  - register the official Microsoft-signed sparse package
-                       (appx\code_x64.appx + appx\code_explorer_command_x64.dll)
-                       and write the Chinese title "Use VSCode Edit".
-    [Unregister]     - remove the package, registry keys and copied files.
+.PARAMETER VSCodePath
+    手动指定 VSCode 根目录（可选，默认使用脚本所在目录）
 
-Only the script's own directory is searched for Code.exe - no parent lookups.
-If Code.exe is missing, the GUI shows a hint to place the script in the VSCode
-portable root.
+.PARAMETER Action
+    无交互执行: register / uninstall（供提权子进程使用）
+
+.PARAMETER DryRun
+    仅预览，不做任何修改
 
 .EXAMPLE
-pwsh -ExecutionPolicy Bypass -File scripts\register-menu.ps1            # GUI
-pwsh -ExecutionPolicy Bypass -File scripts\register-menu.ps1 -DryRun    # preview
+    .\register-menu.ps1
+    交互式模式
+
+.EXAMPLE
+    .\register-menu.ps1 -DryRun
+    检查环境并预览操作
 #>
 param(
     [string]$VSCodePath = '',
@@ -28,8 +35,12 @@ param(
     [switch]$DryRun
 )
 
-$ErrorActionPreference = 'Stop'
-$TitleText = "$([char]0x4F7F)$([char]0x7528) VSCode $([char]0x7F16)$([char]0x8F91)"  # "Use VSCode Edit" in Chinese
+# ============== 全局配置 ==============
+$ErrorActionPreference = 'Continue'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+try { $Host.UI.RawUI.WindowTitle = 'VSCode 便携版右键菜单' } catch {}
+
+$TitleText = "$([char]0x4F7F)$([char]0x7528) VSCode $([char]0x7F16)$([char]0x8F91)"  # 使用 VSCode 编辑
 
 $OfficialPackageName = 'Microsoft.VisualStudioCode'
 $AppxFileName = 'code_x64.appx'
@@ -38,6 +49,7 @@ $RegKeyName = 'VSCodeContextMenu'
 $LegacyPackageNames = @('Code.Modern.Explorer.Menu', 'Code.Insiders.Modern.Explorer.Menu')
 $LegacyRegKeys = @('CodeModernExplorerMenu', 'CodeInsidersModernExplorerMenu')
 
+# ============== 工具函数 ==============
 function Write-Log([string]$Message) {
     if ($LogFile) {
         Add-Content -LiteralPath $LogFile -Value $Message -Encoding utf8
@@ -46,7 +58,7 @@ function Write-Log([string]$Message) {
 }
 
 function Find-VSCodeRoot {
-    # Only the script's own directory is used - no upward search.
+    # 只搜索脚本所在目录，不向上查找
     if ($VSCodePath) {
         return $VSCodePath
     }
@@ -85,7 +97,7 @@ function Get-VersionDir([string]$Root) {
 function Invoke-Register([string]$Root) {
     $versionDir = Get-VersionDir $Root
     if (-not $versionDir) {
-        throw 'Versioned folder (resources\app\package.json) not found. Unsupported VSCode layout.'
+        throw '未找到版本目录 (resources\app\package.json)，VSCode 布局不受支持'
     }
 
     $sourceDir = Join-Path $Root 'appx'
@@ -93,7 +105,7 @@ function Invoke-Register([string]$Root) {
     $sourceAppx = Join-Path $sourceDir $AppxFileName
     $sourceDll = Join-Path $sourceDir $DllFileName
     if (-not (Test-Path -LiteralPath $sourceAppx) -or -not (Test-Path -LiteralPath $sourceDll)) {
-        throw "Official appx files missing: expected $sourceAppx and $sourceDll"
+        throw "缺少官方文件：$sourceAppx / $sourceDll"
     }
 
     New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
@@ -103,10 +115,10 @@ function Invoke-Register([string]$Root) {
     Get-AppxPackage -Name $OfficialPackageName -ErrorAction SilentlyContinue |
         ForEach-Object { Remove-AppxPackage -Package $_.PackageFullName -ErrorAction SilentlyContinue }
 
-    Write-Log "Registering $OfficialPackageName from $targetDir ..."
+    Write-Log "  注册包: $OfficialPackageName"
     Add-AppxPackage -Path (Join-Path $targetDir $AppxFileName) -ExternalLocation $targetDir
     if (-not $?) {
-        throw 'Add-AppxPackage failed. Check that the package is Microsoft-signed and this is Windows 11.'
+        throw 'Add-AppxPackage 失败，请确认是 Windows 11 且包为微软签名'
     }
 
     foreach ($rootKey in @('HKLM:', 'HKCU:')) {
@@ -117,7 +129,7 @@ function Invoke-Register([string]$Root) {
     }
 
     Remove-LegacyMenu
-    Write-Log "Registered. Title = $TitleText"
+    Write-Log "  中文标题: $TitleText"
 }
 
 function Invoke-Uninstall([string]$Root) {
@@ -134,10 +146,27 @@ function Invoke-Uninstall([string]$Root) {
             Remove-Item -LiteralPath $targetDir -Recurse -Force
         }
     }
-    Write-Log 'Unregistered.'
+    Write-Log '  已删除右键菜单注册'
 }
 
-# --- Headless action mode (used by the GUI's elevated child) -----------------
+function Invoke-Elevated([string]$ActionName, [string]$Root, [string]$LogFile) {
+    $isAdmin = [Security.Principal.WindowsPrincipal]::new(
+        [Security.Principal.WindowsIdentity]::GetCurrent()
+    ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+    if ($isAdmin) {
+        if ($ActionName -eq 'register') { Invoke-Register $Root } else { Invoke-Uninstall $Root }
+        return 0
+    }
+
+    $elevatedShell = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh.exe' } else { 'powershell.exe' }
+    $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $PSCommandPath + '"'),
+        '-VSCodePath', ('"' + $Root + '"'), '-Action', $ActionName, '-LogFile', ('"' + $LogFile + '"'))
+    $p = Start-Process -FilePath $elevatedShell -ArgumentList $argList -Verb RunAs -Wait -PassThru
+    return $p.ExitCode
+}
+
+# ============== 无交互模式（提权子进程） ==============
 if ($Action) {
     $root = Find-VSCodeRoot
     if (-not (Test-VSCodeRoot $root)) {
@@ -145,25 +174,8 @@ if ($Action) {
         Write-Log '请把脚本放到 VSCode 便携版根目录（与 Code.exe 同一目录）'
         exit 1
     }
-
-    $isAdmin = [Security.Principal.WindowsPrincipal]::new(
-        [Security.Principal.WindowsIdentity]::GetCurrent()
-    ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-
-    if (-not $isAdmin) {
-        $elevatedShell = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh.exe' } else { 'powershell.exe' }
-        $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $PSCommandPath + '"'),
-            '-VSCodePath', ('"' + $root + '"'), '-Action', $Action, '-LogFile', ('"' + $LogFile + '"'))
-        $p = Start-Process -FilePath $elevatedShell -ArgumentList $argList -Verb RunAs -Wait -PassThru
-        exit $p.ExitCode
-    }
-
     try {
-        if ($Action -eq 'register') {
-            Invoke-Register $root
-        } else {
-            Invoke-Uninstall $root
-        }
+        if ($Action -eq 'register') { Invoke-Register $root } else { Invoke-Uninstall $root }
         Write-Log 'DONE'
         exit 0
     } catch {
@@ -172,7 +184,7 @@ if ($Action) {
     }
 }
 
-# --- Dry run (CLI preview) ---------------------------------------------------
+# ============== 预览模式 ==============
 if ($DryRun) {
     $root = Find-VSCodeRoot
     Write-Host '=== DRY RUN ==='
@@ -183,111 +195,144 @@ if ($DryRun) {
     }
     $versionDir = Get-VersionDir $root
     if (-not $versionDir) {
-        Write-Host 'ERROR: versioned folder (resources\app\package.json) not found'
+        Write-Host 'ERROR: 未找到版本目录 (resources\app\package.json)'
         exit 1
     }
     Write-Host "VSCodePath : $root"
     Write-Host "VersionDir : $($versionDir.FullName)"
     Write-Host "TargetDir  : $(Join-Path $versionDir.FullName 'appx')"
-    Write-Host "Package    : $OfficialPackageName (signed, no Developer Mode needed)"
+    Write-Host "Package    : $OfficialPackageName (微软签名，无需开发者模式)"
     Write-Host "Title key  : $RegKeyName = $TitleText (HKCU + HKLM)"
-    Write-Host '=== no changes made ==='
+    Write-Host '=== 未做任何修改 ==='
     exit 0
 }
 
-# --- GUI mode (default) ------------------------------------------------------
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
+# ============== 交互 UI（仿 build.ps1 风格） ==============
+function Write-Banner {
+    try { Clear-Host } catch {}
+    Write-Host ''
+    Write-Host '  ╔══════════════════════════════════════════════╗' -ForegroundColor Cyan
+    Write-Host '  ║        VSCode 便携版右键菜单 v1.2           ║' -ForegroundColor Cyan
+    Write-Host '  ╚══════════════════════════════════════════════╝' -ForegroundColor Cyan
+    Write-Host ''
+}
 
-$root = Find-VSCodeRoot
-$found = Test-VSCodeRoot $root
+function Write-Section([string]$Title) {
+    Write-Host ''
+    Write-Host "  ── $Title " -ForegroundColor Yellow -NoNewline
+    $padding = 45 - $Title.Length
+    if ($padding -gt 0) { Write-Host ('─' * $padding) -ForegroundColor Yellow } else { Write-Host '' }
+}
 
-function Invoke-ActionElevated([string]$ActionName) {
+function Show-Menu {
+    param(
+        [string]$Title,
+        [array]$Options,
+        [int]$Default = 0,
+        [switch]$ShowDesc
+    )
+    Write-Section $Title
+    Write-Host ''
+    for ($i = 0; $i -lt $Options.Count; $i++) {
+        $prefix = if ($i -eq $Default) { ' >' } else { '  ' }
+        $color = if ($i -eq $Default) { 'Green' } else { 'White' }
+        Write-Host "$prefix [$($i + 1)] $($Options[$i].Name)" -ForegroundColor $color -NoNewline
+        if ($ShowDesc -and $Options[$i].Desc) {
+            Write-Host " - $($Options[$i].Desc)" -ForegroundColor DarkGray
+        } else {
+            Write-Host ''
+        }
+    }
+    Write-Host ''
+    $choice = Read-Host "  请选择 [1-$($Options.Count)] (默认: $($Default + 1))"
+    if ([string]::IsNullOrWhiteSpace($choice)) { return $Default }
+    $index = [int]$choice - 1
+    if ($index -ge 0 -and $index -lt $Options.Count) { return $index }
+    return $Default
+}
+
+function Show-YesNo {
+    param(
+        [string]$Question,
+        [bool]$Default = $true
+    )
+    $defaultText = if ($Default) { 'Y/n' } else { 'y/N' }
+    $choice = Read-Host "  $Question [$defaultText]"
+    if ([string]::IsNullOrWhiteSpace($choice)) { return $Default }
+    $c = $choice.ToLower()
+    return ($c -eq 'y' -or $c -eq 'yes' -or $choice -eq '是')
+}
+
+function Show-Result([int]$ExitCode, [string]$Log) {
+    if ($ExitCode -eq 0) {
+        Write-Host ''
+        Write-Host '  [成功] 操作完成' -ForegroundColor Green
+        if ($Log) { Write-Host $Log -ForegroundColor DarkGray }
+        Write-Host ''
+        if (Show-YesNo -Question '是否立即重启资源管理器?' -Default $true) {
+            Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+            Write-Host '  已重启资源管理器' -ForegroundColor Gray
+        }
+    } else {
+        Write-Host ''
+        Write-Host '  [失败] 操作未完成' -ForegroundColor Red
+        if ($Log) { Write-Host $Log -ForegroundColor DarkGray }
+    }
+}
+
+function Run-Action([string]$ActionName, [string]$ConfirmText) {
+    if (-not (Show-YesNo -Question $ConfirmText -Default $true)) {
+        Write-Host '  已取消' -ForegroundColor Yellow
+        return
+    }
+
     $logFile = Join-Path $env:TEMP 'cmem-register-menu.log'
     Remove-Item -LiteralPath $logFile -ErrorAction SilentlyContinue
 
-    $isAdmin = [Security.Principal.WindowsPrincipal]::new(
-        [Security.Principal.WindowsIdentity]::GetCurrent()
-    ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-
-    $exitCode = 1
-    if ($isAdmin) {
-        try {
-            if ($ActionName -eq 'register') {
-                Invoke-Register $root
-            } else {
-                Invoke-Uninstall $root
-            }
-            Add-Content -LiteralPath $logFile -Value 'DONE' -Encoding utf8
-            $exitCode = 0
-        } catch {
-            Add-Content -LiteralPath $logFile -Value ("ERROR: " + $_.Exception.Message) -Encoding utf8
-        }
-    } else {
-        $elevatedShell = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh.exe' } else { 'powershell.exe' }
-        $argList = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $PSCommandPath + '"'),
-            '-VSCodePath', ('"' + $root + '"'), '-Action', $ActionName, '-LogFile', ('"' + $logFile + '"'))
-        try {
-            $p = Start-Process -FilePath $elevatedShell -ArgumentList $argList -Verb RunAs -Wait -PassThru
-            $exitCode = $p.ExitCode
-        } catch {
-            [void][System.Windows.Forms.MessageBox]::Show(
-                "操作未执行（UAC 被取消？）：`r`n$($_.Exception.Message)",
-                '提示', [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning)
-            return
-        }
-    }
-
+    Write-Host ''
+    Write-Host "  正在执行（可能需要 UAC 确认）..." -ForegroundColor Gray
+    $exitCode = Invoke-Elevated -ActionName $ActionName -Root $root -LogFile $logFile
     $log = if (Test-Path -LiteralPath $logFile) { Get-Content -LiteralPath $logFile -Raw } else { '' }
-    if ($exitCode -eq 0) {
-        $result = [System.Windows.Forms.MessageBox]::Show(
-            '操作完成。' + "`r`n" + $log + "`r`n是否立即重启资源管理器？",
-            '完成', [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Information)
-        if ($result -eq [System.Windows.Forms.DialogResult]::Yes) {
-            Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
+    Show-Result -ExitCode $exitCode -Log $log
+}
+
+trap {
+    Write-Host ''
+    Write-Host "  [错误] $_" -ForegroundColor Red
+    Write-Host ''
+    Read-Host '  按 Enter 退出'
+    exit 1
+}
+
+$root = Find-VSCodeRoot
+
+if (-not (Test-VSCodeRoot $root)) {
+    Write-Banner
+    Write-Host '  [错误] 未找到 Code.exe' -ForegroundColor Red
+    Write-Host ''
+    Write-Host '  请把脚本放到 VSCode 便携版根目录（与 Code.exe 同一目录）' -ForegroundColor Yellow
+    Write-Host ''
+    Read-Host '  按 Enter 退出'
+    exit 1
+}
+
+$menuOptions = @(
+    @{ Name = '注册右键菜单'; Desc = '注册官方稀疏包，标题为“使用 VSCode 编辑”' },
+    @{ Name = '删除右键菜单'; Desc = '移除包、注册表和复制的文件' },
+    @{ Name = '退出'; Desc = '' }
+)
+
+while ($true) {
+    Write-Banner
+    Write-Host "  VSCode 目录: $root" -ForegroundColor DarkGray
+    $choice = Show-Menu -Title '主菜单' -Options $menuOptions -Default 0 -ShowDesc
+    switch ($choice) {
+        0 { Run-Action -ActionName 'register' -ConfirmText '确认注册右键菜单?' }
+        1 { Run-Action -ActionName 'uninstall' -ConfirmText '确认删除右键菜单?' }
+        2 {
+            Write-Host ''
+            Read-Host '  按 Enter 退出'
+            exit 0
         }
-    } else {
-        [void][System.Windows.Forms.MessageBox]::Show(
-            "操作失败：`r`n$log",
-            '错误', [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
     }
 }
-
-$form = New-Object System.Windows.Forms.Form
-$form.Text = 'VSCode 便携版右键菜单'
-$form.ClientSize = New-Object System.Drawing.Size(470, 160)
-$form.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
-$form.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
-$form.MaximizeBox = $false
-$form.Font = New-Object System.Drawing.Font('Microsoft YaHei UI', 9)
-
-$statusLabel = New-Object System.Windows.Forms.Label
-$statusLabel.Location = New-Object System.Drawing.Point(20, 15)
-$statusLabel.Size = New-Object System.Drawing.Size(430, 55)
-$statusLabel.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
-if ($found) {
-    $statusLabel.Text = "已找到 VSCode：`r`n$root"
-} else {
-    $statusLabel.Text = "未找到 Code.exe`r`n请把脚本放到 VSCode 便携版根目录（与 Code.exe 同一目录）"
-}
-
-$btnRegister = New-Object System.Windows.Forms.Button
-$btnRegister.Text = '注册右键菜单'
-$btnRegister.Size = New-Object System.Drawing.Size(190, 45)
-$btnRegister.Location = New-Object System.Drawing.Point(35, 90)
-
-$btnUninstall = New-Object System.Windows.Forms.Button
-$btnUninstall.Text = '删除右键菜单'
-$btnUninstall.Size = New-Object System.Drawing.Size(190, 45)
-$btnUninstall.Location = New-Object System.Drawing.Point(245, 90)
-
-if (-not $found) {
-    $btnRegister.Enabled = $false
-    $btnUninstall.Enabled = $false
-}
-
-$btnRegister.add_Click({ Invoke-ActionElevated 'register' })
-$btnUninstall.add_Click({ Invoke-ActionElevated 'uninstall' })
-
-$form.Controls.AddRange(@($statusLabel, $btnRegister, $btnUninstall))
-[void]$form.ShowDialog()

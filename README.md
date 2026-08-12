@@ -53,10 +53,17 @@ and `appx\code_explorer_command_x64.dll`):
 
 Copy `scripts\register-menu.ps1` and `scripts\register-menu.cmd` into the portable
 VSCode root (the folder that contains `Code.exe`), then double-click
-`register-menu.cmd`. A small GUI opens with two buttons: **Register menu** and
-**Delete menu**. Only the script's own directory is searched for `Code.exe`; if it
-is missing, the GUI asks you to place the script in the VSCode portable root.
-Use `-VSCodePath` to override the root.
+`register-menu.cmd`. An interactive console menu opens:
+
+```text
+  > [1] 注册右键菜单
+    [2] 删除右键菜单
+    [3] 退出
+```
+
+Only the script's own directory is searched for `Code.exe`; if it is missing, the
+script asks you to place it in the VSCode portable root. Use `-VSCodePath` to
+override the root and `-DryRun` to preview without changes.
 
 It copies the official appx files into `<root>\<versioned-folder>\appx`
 (the layout the official shell extension expects), registers the Microsoft-signed
