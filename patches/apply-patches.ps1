@@ -58,6 +58,7 @@ foreach ($patch in $patches) {
 
 if ($Commit) {
   git add -A
+  git add --renormalize .
   git commit -m "build: apply fork patches on top of upstream/main"
 }
 

@@ -12,6 +12,7 @@ git checkout main -- .gitattributes
 git checkout main -- patches
 bash patches/apply-patches.sh
 git add -A
+git add --renormalize .
 upstream_sha="$(git rev-parse --short upstream/main)"
 git commit -m "sync: rebase fork patches on upstream/main ($upstream_sha)"
 
