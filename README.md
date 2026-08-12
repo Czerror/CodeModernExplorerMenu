@@ -51,14 +51,12 @@ For a portable VSCode (e.g. `D:\App\VSCode`), register the context menu directly
 from the official files already inside the portable package (`appx\code_x64.appx`
 and `appx\code_explorer_command_x64.dll`):
 
-```powershell
-pwsh -ExecutionPolicy Bypass -File scripts\register-menu.ps1
-pwsh -ExecutionPolicy Bypass -File scripts\register-menu.ps1 -Uninstall
-```
-
-The script is fully portable: place it inside the portable VSCode folder (next to
-`Code.exe` or in any subfolder) and it auto-detects the root by walking up until it
-finds `Code.exe`. Use `-VSCodePath` to override.
+Copy `scripts\register-menu.ps1` and `scripts\register-menu.cmd` into the portable
+VSCode root (the folder that contains `Code.exe`), then double-click
+`register-menu.cmd`. A small GUI opens with two buttons: **Register menu** and
+**Delete menu**. Only the script's own directory is searched for `Code.exe`; if it
+is missing, the GUI asks you to place the script in the VSCode portable root.
+Use `-VSCodePath` to override the root.
 
 It copies the official appx files into `<root>\<versioned-folder>\appx`
 (the layout the official shell extension expects), registers the Microsoft-signed
