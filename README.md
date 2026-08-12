@@ -56,7 +56,11 @@ pwsh -ExecutionPolicy Bypass -File scripts\register-menu.ps1
 pwsh -ExecutionPolicy Bypass -File scripts\register-menu.ps1 -Uninstall
 ```
 
-The script copies the official appx files into `<root>\<versioned-folder>\appx`
+The script is fully portable: place it inside the portable VSCode folder (next to
+`Code.exe` or in any subfolder) and it auto-detects the root by walking up until it
+finds `Code.exe`. Use `-VSCodePath` to override.
+
+It copies the official appx files into `<root>\<versioned-folder>\appx`
 (the layout the official shell extension expects), registers the Microsoft-signed
 sparse package (no Developer Mode needed), writes the Chinese title into
 `HKCU`/`HKLM`, and removes the old custom registration from this repository so the
