@@ -48,15 +48,17 @@ Notes:
 ## Quick register (no MSI)
 
 For a portable VSCode (e.g. `D:\App\VSCode`), register the context menu directly
-with the built package files (DLL + appx):
+from the official files already inside the portable package (`appx\code_x64.appx`
+and `appx\code_explorer_command_x64.dll`):
 
 ```powershell
 pwsh -ExecutionPolicy Bypass -File scripts\register-menu.ps1
 pwsh -ExecutionPolicy Bypass -File scripts\register-menu.ps1 -Uninstall
 ```
 
-The script copies the DLL/manifest to `%LOCALAPPDATA%\Programs\Code Modern Explorer Menu`,
-registers the sparse package (temporarily toggles Developer Mode if needed), writes the
-Chinese title into `HKCU`/`HKLM`, and cleans up the old custom registration. Use `-DryRun`
-to preview, `-Variant insiders` for Insiders, and `-RestartExplorer` to refresh the menu
-immediately.
+The script copies the official appx files into `<root>\<versioned-folder>\appx`
+(the layout the official shell extension expects), registers the Microsoft-signed
+sparse package (no Developer Mode needed), writes the Chinese title into
+`HKCU`/`HKLM`, and removes the old custom registration from this repository so the
+menus do not collide. Use `-DryRun` to preview and `-RestartExplorer` to refresh the
+menu immediately.
